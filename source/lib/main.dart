@@ -156,8 +156,28 @@ class _ManotoVpnState extends State<ManotoVpn> {
       _selectedServer = nextSelected;
     });
 
-    _testPings(_servers);
-    _testPings(_customServers);
+    await _refreshPingsAndSelectBest();
+  }
+
+  Future<void> _refreshPingsAndSelectBest() async {
+    await Future.wait([
+      _testPings(_servers),
+      _testPings(_customServers),
+    ]);
+
+    if (!mounted) return;
+
+    final candidates = [..._servers, ..._customServers]
+        .where((server) => server.ping != null && server.ping! >= 0)
+        .toList()
+      ..sort((a, b) => _rank(a.ping).compareTo(_rank(b.ping)));
+
+    // On Android, automatically make the fastest measured endpoint the one
+    // that will be used by the Connect action. In Web preview there is no
+    // native VPN engine, so the existing selection is kept.
+    if (!kIsWeb && candidates.isNotEmpty) {
+      setState(() => _selectedServer = candidates.first);
+    }
   }
 
   Future<void> _testPings(List<Server> list) async {
@@ -183,11 +203,6 @@ class _ManotoVpnState extends State<ManotoVpn> {
         if (mounted) setState(() => s.ping = -1);
       }
     }));
-    if (mounted) {
-      setState(() {
-        _servers.sort((a, b) => _rank(a.ping).compareTo(_rank(b.ping)));
-      });
-    }
   }
 
   int _rank(int? p) {
@@ -219,6 +234,10 @@ class _ManotoVpnState extends State<ManotoVpn> {
       if (_isConnected || _isConnecting) {
         await _vless.stopVless();
       } else {
+        // Always use the best measured endpoint when the user taps Connect.
+        // This also covers the case where ping checks completed after the
+        // first frame was rendered.
+        await _refreshPingsAndSelectBest();
         final server = _selectedServer;
 
         if (server == null) {
