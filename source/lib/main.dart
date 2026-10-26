@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vless/flutter_vless.dart';
@@ -102,7 +103,11 @@ class _ManotoVpnState extends State<ManotoVpn> {
   }
 
   Future<void> _bootstrap() async {
-    await _vless.initializeVless();
+    // The native VPN engine is unavailable in a browser preview. Still load
+    // the server catalog so the UI can be reviewed on Web.
+    if (!kIsWeb) {
+      await _vless.initializeVless();
+    }
     _initialized = true;
     await _loadServers();
   }
@@ -156,6 +161,16 @@ class _ManotoVpnState extends State<ManotoVpn> {
   }
 
   Future<void> _testPings(List<Server> list) async {
+    if (kIsWeb) {
+      if (mounted) {
+        setState(() {
+          for (final server in list) {
+            server.ping = -1;
+          }
+        });
+      }
+      return;
+    }
     await Future.wait(list.map((s) async {
       try {
         final parsed = FlutterVless.parse(s.uri);
