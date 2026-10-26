@@ -2,11 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vless/flutter_vless.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() => runApp(const ManotoVpnApp());
+
+const String _remoteServersUrl =
+    'https://raw.githubusercontent.com/apkvpn/mtvn/main/source/assets/configs/default_servers.json';
 
 class ManotoVpnApp extends StatelessWidget {
   const ManotoVpnApp({super.key});
@@ -113,9 +117,44 @@ class _ManotoVpnState extends State<ManotoVpn> {
   }
 
   Future<void> _loadServers() async {
-    final raw =
+    final prefs = await SharedPreferences.getInstance();
+    final bundledRaw =
         await rootBundle.loadString('assets/configs/default_servers.json');
-    final defaults = (jsonDecode(raw) as List)
+    final cachedRaw = prefs.getString('remote_servers_cache');
+
+    // Prefer the last successful remote copy for fast/offline startup, while
+    // still keeping the bundled file as a guaranteed fallback.
+    var defaultsRaw = cachedRaw ?? bundledRaw;
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_remoteServersUrl?v=${DateTime.now().millisecondsSinceEpoch}'),
+        headers: const {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      ).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final remoteJson = jsonDecode(response.body);
+        final validRemoteCatalog = remoteJson is List &&
+            remoteJson.isNotEmpty &&
+            remoteJson.every((entry) =>
+                entry is Map &&
+                entry['name'] is String &&
+                entry['protocol'] is String &&
+                entry['uri'] is String &&
+                (entry['uri'] as String).contains('://'));
+        if (validRemoteCatalog) {
+          defaultsRaw = response.body;
+          await prefs.setString('remote_servers_cache', response.body);
+        }
+      }
+    } catch (_) {
+      // GitHub may be unavailable; use cache or the APK-bundled catalog.
+    }
+
+    final defaults = (jsonDecode(defaultsRaw) as List)
         .map((e) => Server(
               name: e['name'],
               protocol: e['protocol'],
@@ -123,7 +162,6 @@ class _ManotoVpnState extends State<ManotoVpn> {
             ))
         .toList();
 
-    final prefs = await SharedPreferences.getInstance();
     final customUris = prefs.getStringList('custom_servers') ?? [];
     final customs = customUris
         .map((uri) => Server(
