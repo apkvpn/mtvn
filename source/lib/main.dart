@@ -823,7 +823,7 @@ class _ServerTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-        subtitle: Text(server.protocol,
+        subtitle: const Text('Encrypted gateway',
             style: const TextStyle(color: Color(0xFF8A96A8), fontSize: 11)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -988,7 +988,7 @@ class _AppDrawer extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w700)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showInfo(context, 'About Manoto VPN',
-                  'Manoto VPN — VLESS and Trojan client. Version 1.0.0.'),
+                  'Manoto VPN — secure private connectivity. Version 1.0.0.'),
             ),
           ],
         ),
