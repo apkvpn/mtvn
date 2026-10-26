@@ -1,242 +1,52 @@
 [
   {
-    "name": "1. VLESS - Domain : 80",
+    "name": "1. VLESS - Domain : 443",
     "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:80?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Fvl%2FMR9r24HSiJtuRgAZkL%3Fed%3D2560#%F0%9F%92%A6%201.%20VLESS%20-%20Domain%20:%2080"
+    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@u9vpfkrqwnmg17nvqlg.pages.dev:443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FwFsQAfv014UJN47kQHknMSYqp%3Fed%3D2560&sni=U9VPFKRQwNMg17NvqLG.PAgES.dEV&fp=chrome&alpn=http%2F1.1#💦 1. VLESS - Domain : 443"
   },
   {
-    "name": "2. VLESS - IPv4 : 80",
+    "name": "2. VLESS - IPv4 : 443",
     "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@104.21.46.139:80?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Fvl%2F2LGu7xUFY2Vw6gNQVnVzn%3Fed%3D2560#%F0%9F%92%A6%202.%20VLESS%20-%20IPv4%20:%2080"
+    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@188.114.97.2:443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FlNZqFOODcQt2GVxav33P%3Fed%3D2560&sni=U9vpFKrQWNmG17Nvqlg.pAgeS.deV&fp=chrome&alpn=http%2F1.1#💦 2. VLESS - IPv4 : 443"
   },
   {
-    "name": "3. VLESS - IPv4 : 80",
+    "name": "3. VLESS - IPv4 : 443",
     "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@172.67.139.51:80?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Fvl%2F7vi5q54COvSLmco6CsqGuZ1RJ%3Fed%3D2560#%F0%9F%92%A6%203.%20VLESS%20-%20IPv4%20:%2080"
+    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@188.114.96.2:443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FJoGhoNHjYO6fnwG94maV4tmqTzar%3Fed%3D2560&sni=U9VPFKRQWNmG17NvQLg.pAgES.dev&fp=chrome&alpn=http%2F1.1#💦 3. VLESS - IPv4 : 443"
   },
   {
-    "name": "4. VLESS - Clean IP : 80",
+    "name": "4. VLESS - Clean IP : 443",
     "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@www.speedtest.net:80?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Fvl%2Fk1nfN6tzDkcFOKh2OCf2qAZx%3Fed%3D2560#%F0%9F%92%A6%204.%20VLESS%20-%20Clean%20IP%20:%2080"
+    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@www.speedtest.net:443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FQaAxu7n7xNsbDsXJ%3Fed%3D2560&sni=U9vPFkrQWNMG17NvqLg.PaGes.Dev&fp=chrome&alpn=http%2F1.1#💦 4. VLESS - Clean IP : 443"
   },
   {
-    "name": "5. VLESS - Domain : 2086",
+    "name": "5. VLESS - Domain : 8443",
     "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:2086?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Fvl%2FpG4jONIlcBGGYSmgd2R9%3Fed%3D2560#%F0%9F%92%A6%205.%20VLESS%20-%20Domain%20:%202086"
+    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@u9vpfkrqwnmg17nvqlg.pages.dev:8443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FcUWggci3k2onfQFP4L91ZwFBc%3Fed%3D2560&sni=u9vpFKrQWNMG17NvQlg.pAGes.dEV&fp=chrome&alpn=http%2F1.1#💦 5. VLESS - Domain : 8443"
   },
   {
-    "name": "6. VLESS - IPv4 : 2086",
+    "name": "6. VLESS - IPv4 : 8443",
     "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@104.21.46.139:2086?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Fvl%2FGMfanzSO8mNYBgyzbKwpZaEWsG%3Fed%3D2560#%F0%9F%92%A6%206.%20VLESS%20-%20IPv4%20:%202086"
+    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@188.114.97.2:8443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FY1N7OidhoKMwrxUgQ6FTNnmqN%3Fed%3D2560&sni=u9VpFkRQWNmG17NvqLg.PaGES.dEv&fp=chrome&alpn=http%2F1.1#💦 6. VLESS - IPv4 : 8443"
   },
   {
-    "name": "7. VLESS - IPv4 : 2086",
+    "name": "7. VLESS - IPv4 : 8443",
     "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@172.67.139.51:2086?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Fvl%2FdvB4LCBxcymDTEucCGJRZP7%3Fed%3D2560#%F0%9F%92%A6%207.%20VLESS%20-%20IPv4%20:%202086"
+    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@188.114.96.2:8443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FXCzRMMQrJCpjtD4e%3Fed%3D2560&sni=U9vpFKrqwnmG17NvqlG.PaGES.DeV&fp=chrome&alpn=http%2F1.1#💦 7. VLESS - IPv4 : 8443"
   },
   {
-    "name": "8. VLESS - Clean IP : 2086",
+    "name": "8. VLESS - Clean IP : 8443",
     "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@www.speedtest.net:2086?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Fvl%2FTAen3062A5piRhgdDun8c1kfJzNigB%3Fed%3D2560#%F0%9F%92%A6%208.%20VLESS%20-%20Clean%20IP%20:%202086"
+    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@www.speedtest.net:8443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FrmLDOegkT0HOtMBBouxiEkRHB%3Fed%3D2560&sni=u9VPFkrQWnMg17NvQLG.pAGeS.deV&fp=chrome&alpn=http%2F1.1#💦 8. VLESS - Clean IP : 8443"
   },
   {
-    "name": "9. VLESS - Domain : 443",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:443?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FzGTQA9e0987HDyfI3Rsu0wXPndzun%3Fed%3D2560&sni=E8o2G4d-twNRHL1DafqLfJ6pleqRW.tVMAnOtoO.WorkERS.deV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%209.%20VLESS%20-%20Domain%20:%20443"
-  },
-  {
-    "name": "10. VLESS - IPv4 : 443",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@104.21.46.139:443?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FBh9xaefeqoaj8nYE2T26R3ndvcjx%3Fed%3D2560&sni=e8o2G4d-twNRHl1DaFQlFJ6pleQRw.tVmanOtoO.WORKERs.dEv&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2010.%20VLESS%20-%20IPv4%20:%20443"
-  },
-  {
-    "name": "11. VLESS - IPv4 : 443",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@172.67.139.51:443?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2Fc6jai5qyVbeNGlRi2ALBuRwK64Cbv%3Fed%3D2560&sni=E8O2G4d-TWNRHl1DAfqLFJ6pLEqrW.TVMaNOtOO.workERs.Dev&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2011.%20VLESS%20-%20IPv4%20:%20443"
-  },
-  {
-    "name": "12. VLESS - Clean IP : 443",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@www.speedtest.net:443?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2F1QLQa8htjGoH1Aii%3Fed%3D2560&sni=E8O2G4d-TWNrHL1dAFqLFJ6PLEqrw.tvmANotoO.woRKErs.deV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2012.%20VLESS%20-%20Clean%20IP%20:%20443"
-  },
-  {
-    "name": "13. VLESS - Domain : 2053",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:2053?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FjGZcjGRbjHxKGylSVDPB%3Fed%3D2560&sni=E8o2g4d-Twnrhl1DAFQlfj6pleqRW.TVmAnOtOo.WorKerS.Dev&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2013.%20VLESS%20-%20Domain%20:%202053"
-  },
-  {
-    "name": "14. VLESS - IPv4 : 2053",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@104.21.46.139:2053?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FEn7HkrY94M8XMfxTZ1nqpg%3Fed%3D2560&sni=E8O2G4D-TWNrhL1DafQlfJ6PlEQrW.TvMAnotOO.workErs.deV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2014.%20VLESS%20-%20IPv4%20:%202053"
-  },
-  {
-    "name": "15. VLESS - IPv4 : 2053",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@172.67.139.51:2053?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2F7qEgEq3i9ytSghlWs%3Fed%3D2560&sni=e8O2G4D-twNrhL1DaFQlFj6PleqRW.TvmaNOtoO.WoRkers.dev&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2015.%20VLESS%20-%20IPv4%20:%202053"
-  },
-  {
-    "name": "16. VLESS - Clean IP : 2053",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@www.speedtest.net:2053?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FCFF2KPuM2l23Oh9NspMfzm%3Fed%3D2560&sni=E8o2g4d-tWNRHL1DAfQlFj6PlEqrw.TvMAnOTOo.WOrKERs.DEV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2016.%20VLESS%20-%20Clean%20IP%20:%202053"
-  },
-  {
-    "name": "17. VLESS - Domain : 2083",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:2083?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FFZYCzb9blTVx97RDp1xsy7m%3Fed%3D2560&sni=E8O2G4D-tWNRhl1dAfqlFj6plEQrW.TVmanOToO.woRkErS.dEV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2017.%20VLESS%20-%20Domain%20:%202083"
-  },
-  {
-    "name": "18. VLESS - IPv4 : 2083",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@104.21.46.139:2083?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FwN1OkdHb2oa7ThZnJ4l17PAQbc%3Fed%3D2560&sni=E8O2g4d-tWNRHL1daFQLFJ6plEQRW.tVmaNoToo.woRKerS.DeV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2018.%20VLESS%20-%20IPv4%20:%202083"
-  },
-  {
-    "name": "19. VLESS - IPv4 : 2083",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@172.67.139.51:2083?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FSsj4lgmMKCDMA0VTsMxAXViWN31jQy%3Fed%3D2560&sni=e8o2g4d-twnrHL1DAfqlfJ6PLEqRw.TVMaNotOO.WORKErS.dEV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2019.%20VLESS%20-%20IPv4%20:%202083"
-  },
-  {
-    "name": "20. VLESS - Clean IP : 2083",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@www.speedtest.net:2083?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FMOhl4ebORD7JBC9hNu3%3Fed%3D2560&sni=e8o2G4d-tWNrhl1DaFqlfJ6PleqRw.tvMANOTOO.WORKers.dEv&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2020.%20VLESS%20-%20Clean%20IP%20:%202083"
-  },
-  {
-    "name": "21. VLESS - Domain : 2096",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:2096?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FlAjOLvTWqL4CcwPmyzkmZJRVz%3Fed%3D2560&sni=E8O2g4D-TwnrHL1dafQlfJ6pLeQrw.TvmAnotOO.WorKeRs.Dev&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2021.%20VLESS%20-%20Domain%20:%202096"
-  },
-  {
-    "name": "22. VLESS - IPv4 : 2096",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@104.21.46.139:2096?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FlegFdshPYuzqpA6U0Pzn9ZMeRfaq68iv%3Fed%3D2560&sni=E8o2G4d-TwNrhL1DAfqLfJ6pLeQrw.TVmAnOToo.WoRKers.DeV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2022.%20VLESS%20-%20IPv4%20:%202096"
-  },
-  {
-    "name": "23. VLESS - IPv4 : 2096",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@172.67.139.51:2096?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FIc8cEuUNwAu9ZauPQRFhiHyX8jP4AAII%3Fed%3D2560&sni=e8o2g4d-TWNrHl1DAfqlfJ6plEqRW.TVmAnOToo.WorKers.dEv&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2023.%20VLESS%20-%20IPv4%20:%202096"
-  },
-  {
-    "name": "24. VLESS - Clean IP : 2096",
-    "protocol": "VLESS",
-    "uri": "vless://f574dec4-7220-4ecb-8a5e-084c906e4591@www.speedtest.net:2096?encryption=none&host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Fvl%2FOj63syhy6aBNPIROD2B8yDp%3Fed%3D2560&sni=e8o2G4d-TwNRhl1dafQLFj6PLeqrw.tVmanOtoO.worKeRS.dEv&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2024.%20VLESS%20-%20Clean%20IP%20:%202096"
-  },
-  {
-    "name": "1. Trojan - Domain : 80",
+    "name": "1. Trojan - Domain : 443",
     "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:80?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Ftr%2FmAe0QeFKLDRMVKj3S3y3YQaWBb%3Fed%3D2560#%F0%9F%92%A6%201.%20Trojan%20-%20Domain%20:%2080"
+    "uri": "trojan://4G9g-9eD&p*dCQoA4@u9vpfkrqwnmg17nvqlg.pages.dev:443?host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Ftr%2FOi7cERa4BkIij8e6ERuB77ejxihZhK%3Fed%3D2560&sni=U9VPFKRQWNMg17NvqLG.PAgES.dEV&fp=chrome&alpn=http%2F1.1#💦 1. Trojan - Domain : 443"
   },
   {
-    "name": "2. Trojan - IPv4 : 80",
+    "name": "2. Trojan - IPv4 : 443",
     "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@104.21.46.139:80?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Ftr%2Fm1nAbWyhyI1TWGJQ41sPNX6T0SCK%3Fed%3D2560#%F0%9F%92%A6%202.%20Trojan%20-%20IPv4%20:%2080"
-  },
-  {
-    "name": "3. Trojan - IPv4 : 80",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@172.67.139.51:80?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Ftr%2FkwNdoPKZtaEvCtEQa3BWHvh%3Fed%3D2560#%F0%9F%92%A6%203.%20Trojan%20-%20IPv4%20:%2080"
-  },
-  {
-    "name": "4. Trojan - Clean IP : 80",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@www.speedtest.net:80?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Ftr%2FIfmdPZYAPybbhan1WkmHZY%3Fed%3D2560#%F0%9F%92%A6%204.%20Trojan%20-%20Clean%20IP%20:%2080"
-  },
-  {
-    "name": "5. Trojan - Domain : 2086",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:2086?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Ftr%2FCPWo9NlydW6SHtlx5qkUeD%3Fed%3D2560#%F0%9F%92%A6%205.%20Trojan%20-%20Domain%20:%202086"
-  },
-  {
-    "name": "6. Trojan - IPv4 : 2086",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@104.21.46.139:2086?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Ftr%2F8cdxuWy9T93lRl4Aq8hYM1MZYaVA%3Fed%3D2560#%F0%9F%92%A6%206.%20Trojan%20-%20IPv4%20:%202086"
-  },
-  {
-    "name": "7. Trojan - IPv4 : 2086",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@172.67.139.51:2086?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Ftr%2F1FV6AlE4w7uSZhi6k1b9tjUnVReJCdPX%3Fed%3D2560#%F0%9F%92%A6%207.%20Trojan%20-%20IPv4%20:%202086"
-  },
-  {
-    "name": "8. Trojan - Clean IP : 2086",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@www.speedtest.net:2086?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=none&path=%2Ftr%2F3s74Hixh89SM0yeMrk54NNUOkW%3Fed%3D2560#%F0%9F%92%A6%208.%20Trojan%20-%20Clean%20IP%20:%202086"
-  },
-  {
-    "name": "9. Trojan - Domain : 443",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:443?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FghksdpSkeBoR25ZZLAgdUObHYJAkC%3Fed%3D2560&sni=E8o2G4d-twNRHL1DafqLfJ6pleqRW.tVMAnOtoO.WorkERS.deV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%209.%20Trojan%20-%20Domain%20:%20443"
-  },
-  {
-    "name": "10. Trojan - IPv4 : 443",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@104.21.46.139:443?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FPF112yRJJgtquuul%3Fed%3D2560&sni=e8o2G4d-twNRHl1DaFQlFJ6pleQRw.tVmanOtoO.WORKERs.dEv&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2010.%20Trojan%20-%20IPv4%20:%20443"
-  },
-  {
-    "name": "11. Trojan - IPv4 : 443",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@172.67.139.51:443?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FmjDN63ra86goQfsodsImH6%3Fed%3D2560&sni=E8O2G4d-TWNRHl1DAfqLFJ6pLEqrW.TVMaNOtOO.workERs.Dev&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2011.%20Trojan%20-%20IPv4%20:%20443"
-  },
-  {
-    "name": "12. Trojan - Clean IP : 443",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@www.speedtest.net:443?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FgjDfD3IElFO64eiOpAUEH5FeTa9DJ%3Fed%3D2560&sni=E8O2G4d-TWNrHL1dAFqLFJ6PLEqrw.tvmANotoO.woRKErs.deV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2012.%20Trojan%20-%20Clean%20IP%20:%20443"
-  },
-  {
-    "name": "13. Trojan - Domain : 2053",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:2053?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FXGxhg38L8bBa0fvK0%3Fed%3D2560&sni=E8o2g4d-Twnrhl1DAFQlfj6pleqRW.TVmAnOtOo.WorKerS.Dev&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2013.%20Trojan%20-%20Domain%20:%202053"
-  },
-  {
-    "name": "14. Trojan - IPv4 : 2053",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@104.21.46.139:2053?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2Fzhxhs9jF8EeOOCIqq3nE3MpX1d%3Fed%3D2560&sni=E8O2G4D-TWNrhL1DafQlfJ6PlEQrW.TvMAnotOO.workErs.deV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2014.%20Trojan%20-%20IPv4%20:%202053"
-  },
-  {
-    "name": "15. Trojan - IPv4 : 2053",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@172.67.139.51:2053?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FwPAQ8GrqnyV9rvjsvatOUUsO1tvXIipJ%3Fed%3D2560&sni=e8O2G4D-twNrhL1DaFQlFj6PleqRW.TvmaNOtoO.WoRkers.dev&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2015.%20Trojan%20-%20IPv4%20:%202053"
-  },
-  {
-    "name": "16. Trojan - Clean IP : 2053",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@www.speedtest.net:2053?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FslaOmyHKErvUc823b%3Fed%3D2560&sni=E8o2g4d-tWNRHL1DAfQlFj6PlEqrw.TvMAnOTOo.WOrKERs.DEV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2016.%20Trojan%20-%20Clean%20IP%20:%202053"
-  },
-  {
-    "name": "17. Trojan - Domain : 2083",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:2083?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FqOILKDtQyz3SVpgw8EX0M5VWCSJ6S%3Fed%3D2560&sni=E8O2G4D-tWNRhl1dAfqlFj6plEQrW.TVmanOToO.woRkErS.dEV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2017.%20Trojan%20-%20Domain%20:%202083"
-  },
-  {
-    "name": "18. Trojan - IPv4 : 2083",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@104.21.46.139:2083?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2Fu4DefeirLKET5FVUe7LYUc6OdjF5Rfb%3Fed%3D2560&sni=E8O2g4d-tWNRHL1daFQLFJ6plEQRW.tVmaNoToo.woRKerS.DeV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2018.%20Trojan%20-%20IPv4%20:%202083"
-  },
-  {
-    "name": "19. Trojan - IPv4 : 2083",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@172.67.139.51:2083?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FflC0eSq5hWS6BRuRQLjWkVeuxRM8%3Fed%3D2560&sni=e8o2g4d-twnrHL1DAfqlfJ6PLEqRw.TVMaNotOO.WORKErS.dEV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2019.%20Trojan%20-%20IPv4%20:%202083"
-  },
-  {
-    "name": "20. Trojan - Clean IP : 2083",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@www.speedtest.net:2083?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FDrhk0qYeExKJ0HMEuIn5HC09zca1%3Fed%3D2560&sni=e8o2G4d-tWNrhl1DaFqlfJ6PleqRw.tvMANOTOO.WORKers.dEv&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2020.%20Trojan%20-%20Clean%20IP%20:%202083"
-  },
-  {
-    "name": "21. Trojan - Domain : 2096",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev:2096?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FfSFaO2Rl6LEf8Z4DMVLcPmSUOG5X%3Fed%3D2560&sni=E8O2g4D-TwnrHL1dafQlfJ6pLeQrw.TvmAnotOO.WorKeRs.Dev&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2021.%20Trojan%20-%20Domain%20:%202096"
-  },
-  {
-    "name": "22. Trojan - IPv4 : 2096",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@104.21.46.139:2096?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FEluwGIzZxMrjLUe2pRECCnLXy%3Fed%3D2560&sni=E8o2G4d-TwNrhL1DAfqLfJ6pLeQrw.TVmAnOToo.WoRKers.DeV&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2022.%20Trojan%20-%20IPv4%20:%202096"
-  },
-  {
-    "name": "23. Trojan - IPv4 : 2096",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@172.67.139.51:2096?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FR5Xjabtjh2oB9jEQd9Siab6GETZtjm%3Fed%3D2560&sni=e8o2g4d-TWNrHl1DAfqlfJ6plEqRW.TVmAnOToo.WorKers.dEv&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2023.%20Trojan%20-%20IPv4%20:%202096"
-  },
-  {
-    "name": "24. Trojan - Clean IP : 2096",
-    "protocol": "Trojan",
-    "uri": "trojan://cj+Ywc2hau&,9FQJS@www.speedtest.net:2096?host=e8o2g4d-twnrhl1dafqlfj6pleqrw.tvmanotoo.workers.dev&type=ws&security=tls&path=%2Ftr%2FFP5kj5wYsjISdadVsy8DAxM2uVq%3Fed%3D2560&sni=e8o2G4d-TwNRhl1dafQLFj6PLeqrw.tVmanOtoO.worKeRS.dEv&fp=chrome&alpn=http%2F1.1#%F0%9F%92%A6%2024.%20Trojan%20-%20Clean%20IP%20:%202096"
+    "uri": "trojan://4G9g-9eD&p*dCQoA4@188.114.97.2:443?host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Ftr%2F8hSQPE959eQg3UtDY%3Fed%3D2560&sni=U9vpFKrQWNmG17Nvqlg.pAgeS.deV&fp=chrome&alpn=http%2F1.1#💦 2. Trojan - IPv4 : 443"
   }
 ]
