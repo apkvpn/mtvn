@@ -48,27 +48,6 @@
     "name": "Secure Gateway 10 — TLS 443",
     "protocol": "Trojan",
     "uri": "trojan://4G9g-9eD&p*dCQoA4@188.114.97.2:443?host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Ftr%2F8hSQPE959eQg3UtDY%3Fed%3D2560&sni=U9vpFKrQWNmG17Nvqlg.pAgeS.deV&fp=chrome&alpn=http%2F1.1#💦 2. Trojan - IPv4 : 443"
-  },
-
-  {
-    "name": "All Net - Tunnel 🇩🇪 4",
-    "protocol": "VLESS",
-    "uri": "vless://f342ae81-7f5d-4e88-8f05-a6625daac833@tr.meepo1.com:443?encryption=none&security=tls&sni=trs.meepo1.com&alpn=http%2F1.1&fp=chrome&type=tcp&headerType=none&host=trs.meepo1.com#All%20Net%20-%20Tunnel%20%F0%9F%87%A9%F0%9F%87%AA%20%E2%81%B4"
-  },
-  {
-    "name": "All Net - Tunnel 🇩🇪 3",
-    "protocol": "VLESS",
-    "uri": "vless://f342ae81-7f5d-4e88-8f05-a6625daac833@gr-3.meepo1.com:443?encryption=none&security=tls&sni=gr-3.meepo1.com&alpn=http%2F1.1&fp=chrome&type=tcp&headerType=none&host=gr-3.meepo1.com#All%20Net%20-%20Tunnel%20%F0%9F%87%A9%F0%9F%87%AA%20%C2%B3"
-  },
-  {
-    "name": "All Net - Tunnel 🇳🇱 1",
-    "protocol": "VLESS",
-    "uri": "vless://f342ae81-7f5d-4e88-8f05-a6625daac833@nl.meepo1.com:443?encryption=none&security=tls&sni=nl.meepo1.com&type=tcp&headerType=none#All%20Net%20-%20Tunnel%20%F0%9F%87%B3%F0%9F%87%B1%20%C2%B9"
-  },
-  {
-    "name": "All Net - Tunnel 🇫🇮 4",
-    "protocol": "VLESS",
-    "uri": "vless://f342ae81-7f5d-4e88-8f05-a6625daac833@fi-4.meepo1.com:443?encryption=none&security=tls&sni=fi-4.meepo1.com&type=tcp&headerType=none&host=fi-4.meepo1.com#All%20Net%20-%20Tunnel%20%F0%9F%87%AB%F0%9F%87%AE%20%E2%81%B4"
   }
 ]
 
