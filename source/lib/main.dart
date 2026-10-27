@@ -236,10 +236,9 @@ class _ManotoVpnState extends State<ManotoVpn> {
         .toList()
       ..sort((a, b) => _rank(a.ping).compareTo(_rank(b.ping)));
 
-    // On Android, automatically make the fastest measured endpoint the one
-    // that will be used by the Connect action. In Web preview there is no
-    // native VPN engine, so the existing selection is kept.
-    if (!kIsWeb && candidates.isNotEmpty) {
+    // Always select only the fastest endpoint with a successful probe.
+    // Failed or unverified endpoints must never remain on the Connect button.
+    if (candidates.isNotEmpty) {
       final best = candidates.first;
       setState(() {
         _selectedServer = best;
@@ -247,8 +246,13 @@ class _ManotoVpnState extends State<ManotoVpn> {
       });
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('last_best_uri', best.uri);
-    } else if (kIsWeb) {
-      setState(() => _bestServerReady = true);
+    } else {
+      // Web cannot run the native VLESS probe, so do not pretend that an
+      // unverified endpoint is active in the browser preview.
+      setState(() {
+        _selectedServer = null;
+        _bestServerReady = true;
+      });
     }
     _pingRefreshInProgress = false;
   }
@@ -284,6 +288,8 @@ class _ManotoVpnState extends State<ManotoVpn> {
     return p;
   }
 
+  bool _isActive(Server server) => server.ping != null && server.ping! >= 0;
+
   Color _pingColor(int? p) {
     if (p == null) return Colors.grey;
     if (p < 0) return Colors.red;
@@ -311,8 +317,8 @@ class _ManotoVpnState extends State<ManotoVpn> {
         // connection attempt, so Connect never waits for every server.
         final server = _selectedServer;
 
-        if (server == null) {
-          _showSnack('No server selected');
+        if (server == null || !_isActive(server)) {
+          _showSnack('No active server is available');
           return;
         }
 
@@ -433,7 +439,8 @@ class _ManotoVpnState extends State<ManotoVpn> {
     final rankedServers = [..._servers]
       ..sort((a, b) => _rank(a.ping).compareTo(_rank(b.ping)));
     final visibleServers =
-        _showAllServers ? rankedServers : rankedServers.take(6).toList();
+        _showAllServers ? rankedServers : rankedServers.take(4).toList();
+    final canConnect = selectedServer != null && _isActive(selectedServer);
 
     return Scaffold(
       endDrawer: const _AppDrawer(),
@@ -518,7 +525,9 @@ class _ManotoVpnState extends State<ManotoVpn> {
                           connecting:
                               _isConnecting || _busy || !_bestServerReady,
                           serverReady: _bestServerReady,
-                          serverName: selectedServer?.name ?? 'Loading...',
+                          canConnect: canConnect,
+                          serverName:
+                              selectedServer?.name ?? 'No active server',
                           pingLabel: _pingLabel(selectedServer?.ping),
                           animationId: _connectionAnimationId,
                           onTap: _toggleConnection,
@@ -543,11 +552,17 @@ class _ManotoVpnState extends State<ManotoVpn> {
                                   pingLabel: _pingLabel(server.ping),
                                   accent: _accentFor(server.name),
                                   rank: index < 5 ? index + 1 : null,
-                                  onTap: () =>
-                                      setState(() => _selectedServer = server),
+                                  onTap: () {
+                                    if (_isActive(server)) {
+                                      _showSnack(
+                                          'The best active server is selected automatically');
+                                    } else {
+                                      _showSnack('This server is not active');
+                                    }
+                                  },
                                 );
                               }),
-                              if (rankedServers.length > 10)
+                              if (rankedServers.length > 4)
                                 TextButton.icon(
                                   onPressed: () => setState(() {
                                     _showAllServers = !_showAllServers;
@@ -557,7 +572,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
                                       : Icons.keyboard_arrow_down),
                                   label: Text(_showAllServers
                                       ? 'Show less'
-                                      : 'Show ${rankedServers.length - 6} more'),
+                                      : 'Show ${rankedServers.length - 4} more'),
                                 ),
                             ],
                           ),
@@ -592,8 +607,14 @@ class _ManotoVpnState extends State<ManotoVpn> {
                                     pingColor: _pingColor(server.ping),
                                     pingLabel: _pingLabel(server.ping),
                                     accent: _accentFor(server.name),
-                                    onTap: () => setState(
-                                        () => _selectedServer = server),
+                                    onTap: () {
+                                      if (_isActive(server)) {
+                                        _showSnack(
+                                            'The best active server is selected automatically');
+                                      } else {
+                                        _showSnack('This server is not active');
+                                      }
+                                    },
                                     onDelete: () => _deleteCustomServer(server),
                                   ),
                                 ),
@@ -740,6 +761,7 @@ class _ConnectCard extends StatelessWidget {
   final bool connected;
   final bool connecting;
   final bool serverReady;
+  final bool canConnect;
   final String serverName;
   final String pingLabel;
   final int animationId;
@@ -748,6 +770,7 @@ class _ConnectCard extends StatelessWidget {
     required this.connected,
     required this.connecting,
     required this.serverReady,
+    required this.canConnect,
     required this.serverName,
     required this.pingLabel,
     required this.animationId,
@@ -820,7 +843,7 @@ class _ConnectCard extends StatelessWidget {
                     ),
                   ),
                 GestureDetector(
-                  onTap: serverReady ? onTap : null,
+                  onTap: canConnect ? onTap : null,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     width: 176,
@@ -838,9 +861,17 @@ class _ConnectCard extends StatelessWidget {
                         end: Alignment.bottomRight,
                         colors: !serverReady
                             ? const [Color(0xFF66717C), Color(0xFF414A52)]
-                            : connected
-                                ? const [Color(0xFFD9FF72), Color(0xFFA7E832)]
-                                : const [Color(0xFF25282D), Color(0xFF111316)],
+                            : !canConnect
+                                ? const [Color(0xFF7B858E), Color(0xFF59636B)]
+                                : connected
+                                    ? const [
+                                        Color(0xFFD9FF72),
+                                        Color(0xFFA7E832)
+                                      ]
+                                    : const [
+                                        Color(0xFF25282D),
+                                        Color(0xFF111316)
+                                      ],
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -876,36 +907,53 @@ class _ConnectCard extends StatelessWidget {
                                 ),
                               ],
                             )
-                          : connecting
-                              ? const CircularProgressIndicator(
-                                  color: Color(0xFF152238))
-                              : Column(
+                          : !canConnect
+                              ? const Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    Icon(Icons.cloud_off,
+                                        color: Colors.white, size: 30),
+                                    SizedBox(height: 10),
                                     Text(
-                                      connected ? 'Connected ✓' : 'Connect',
+                                      'No active server',
                                       style: TextStyle(
-                                        color: connected
-                                            ? const Color(0xFF1B3514)
-                                            : Colors.white,
-                                        fontSize: 21,
+                                        color: Colors.white,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w900,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      connected
-                                          ? 'Tap to disconnect'
-                                          : 'Tap to secure',
-                                      style: TextStyle(
-                                        color: connected
-                                            ? const Color(0xFF527B24)
-                                            : Colors.white70,
-                                        fontSize: 12,
-                                      ),
-                                    ),
                                   ],
-                                ),
+                                )
+                              : connecting
+                                  ? const CircularProgressIndicator(
+                                      color: Color(0xFF152238))
+                                  : Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          connected ? 'Connected ✓' : 'Connect',
+                                          style: TextStyle(
+                                            color: connected
+                                                ? const Color(0xFF1B3514)
+                                                : Colors.white,
+                                            fontSize: 21,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          connected
+                                              ? 'Tap to disconnect'
+                                              : 'Tap to secure',
+                                          style: TextStyle(
+                                            color: connected
+                                                ? const Color(0xFF527B24)
+                                                : Colors.white70,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                     ),
                   ),
                 ),
@@ -1023,7 +1071,7 @@ class _ServerTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
         subtitle: const Text('Encrypted gateway',
-            style: const TextStyle(color: Color(0xFF8A96A8), fontSize: 11)),
+            style: TextStyle(color: Color(0xFF8A96A8), fontSize: 11)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
