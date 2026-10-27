@@ -48,11 +48,8 @@
     "name": "Secure Gateway 10 — TLS 443",
     "protocol": "Trojan",
     "uri": "trojan://4G9g-9eD&p*dCQoA4@188.114.97.2:443?host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Ftr%2F8hSQPE959eQg3UtDY%3Fed%3D2560&sni=U9vpFKrQWNmG17Nvqlg.pAgeS.deV&fp=chrome&alpn=http%2F1.1#💦 2. Trojan - IPv4 : 443"
-  }
-]
+  },
 
-
-[
   {
     "name": "All Net - Tunnel 🇩🇪 4",
     "protocol": "VLESS",
