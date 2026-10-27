@@ -182,9 +182,6 @@ class _ManotoVpnState extends State<ManotoVpn> {
     } else {
       unawaited(_refreshPingsAndSelectBest());
     }
-    if (initialSelection && mounted) {
-      setState(() => _bestServerReady = true);
-    }
     if (refreshRemote) unawaited(_refreshRemoteCatalog());
   }
 
@@ -223,10 +220,11 @@ class _ManotoVpnState extends State<ManotoVpn> {
   Future<void> _refreshPingsAndSelectBest() async {
     if (_pingRefreshInProgress) return;
     _pingRefreshInProgress = true;
-    await Future.wait([
-      _testPings(_servers),
-      _testPings(_customServers),
-    ]);
+    // The native delay probe uses a temporary Xray process/config file.
+    // Running probes concurrently makes them overwrite each other, so scan
+    // every endpoint serially and choose only from completed valid results.
+    await _testPings(_servers);
+    await _testPings(_customServers);
 
     if (!mounted) {
       _pingRefreshInProgress = false;
@@ -243,11 +241,15 @@ class _ManotoVpnState extends State<ManotoVpn> {
     // native VPN engine, so the existing selection is kept.
     if (!kIsWeb && candidates.isNotEmpty) {
       final best = candidates.first;
-      setState(() => _selectedServer = best);
+      setState(() {
+        _selectedServer = best;
+        _bestServerReady = true;
+      });
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('last_best_uri', best.uri);
+    } else if (kIsWeb) {
+      setState(() => _bestServerReady = true);
     }
-    if (kIsWeb || candidates.isNotEmpty) _bestServerReady = true;
     _pingRefreshInProgress = false;
   }
 
@@ -262,20 +264,18 @@ class _ManotoVpnState extends State<ManotoVpn> {
       }
       return;
     }
-    await Future.wait(list.map((s) async {
+    for (final s in list) {
       try {
         final parsed = FlutterVless.parse(s.uri);
-        final delay = await _vless
-            .getServerDelay(
-              config: parsed.getFullConfiguration(),
-              url: 'https://www.gstatic.com/generate_204',
-            )
-            .timeout(const Duration(seconds: 2));
+        final delay = await _vless.getServerDelay(
+          config: parsed.getFullConfiguration(),
+          url: 'https://www.gstatic.com/generate_204',
+        );
         if (mounted) setState(() => s.ping = delay);
       } catch (_) {
         if (mounted) setState(() => s.ping = -1);
       }
-    }));
+    }
   }
 
   int _rank(int? p) {
