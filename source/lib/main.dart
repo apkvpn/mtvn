@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -89,6 +90,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
   Server? _selectedServer;
   bool _initialized = false;
   bool _busy = false;
+  bool _pingRefreshInProgress = false;
   bool _showAllServers = false;
 
   bool get _isConnected => (_status?.state ?? '').toUpperCase() == 'CONNECTED';
@@ -116,43 +118,15 @@ class _ManotoVpnState extends State<ManotoVpn> {
     await _loadServers();
   }
 
-  Future<void> _loadServers() async {
+  Future<void> _loadServers({bool refreshRemote = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final bundledRaw =
         await rootBundle.loadString('assets/configs/default_servers.json');
     final cachedRaw = prefs.getString('remote_servers_cache');
 
-    // Prefer the last successful remote copy for fast/offline startup, while
-    // still keeping the bundled file as a guaranteed fallback.
-    var defaultsRaw = cachedRaw ?? bundledRaw;
-    try {
-      final response = await http.get(
-        Uri.parse(
-            '$_remoteServersUrl?v=${DateTime.now().millisecondsSinceEpoch}'),
-        headers: const {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
-      ).timeout(const Duration(seconds: 8));
-
-      if (response.statusCode == 200) {
-        final remoteJson = jsonDecode(response.body);
-        final validRemoteCatalog = remoteJson is List &&
-            remoteJson.isNotEmpty &&
-            remoteJson.every((entry) =>
-                entry is Map &&
-                entry['name'] is String &&
-                entry['protocol'] is String &&
-                entry['uri'] is String &&
-                (entry['uri'] as String).contains('://'));
-        if (validRemoteCatalog) {
-          defaultsRaw = response.body;
-          await prefs.setString('remote_servers_cache', response.body);
-        }
-      }
-    } catch (_) {
-      // GitHub may be unavailable; use cache or the APK-bundled catalog.
-    }
+    // Never block the first screen on GitHub. Use cache/bundled data now and
+    // refresh the catalog in the background.
+    final defaultsRaw = cachedRaw ?? bundledRaw;
 
     final defaults = (jsonDecode(defaultsRaw) as List)
         .map((e) => Server(
@@ -175,7 +149,8 @@ class _ManotoVpnState extends State<ManotoVpn> {
     final allServers = [...defaults, ...customs];
     Server? nextSelected;
 
-    final previousUri = _selectedServer?.uri;
+    final previousUri =
+        prefs.getString('last_best_uri') ?? _selectedServer?.uri;
 
     if (previousUri != null) {
       for (final server in allServers) {
@@ -194,16 +169,54 @@ class _ManotoVpnState extends State<ManotoVpn> {
       _selectedServer = nextSelected;
     });
 
-    await _refreshPingsAndSelectBest();
+    unawaited(_refreshPingsAndSelectBest());
+    if (refreshRemote) unawaited(_refreshRemoteCatalog());
+  }
+
+  Future<void> _refreshRemoteCatalog() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_remoteServersUrl?v=${DateTime.now().millisecondsSinceEpoch}'),
+        headers: const {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      ).timeout(const Duration(seconds: 3));
+      if (response.statusCode != 200) return;
+
+      final remoteJson = jsonDecode(response.body);
+      final validRemoteCatalog = remoteJson is List &&
+          remoteJson.isNotEmpty &&
+          remoteJson.every((entry) =>
+              entry is Map &&
+              entry['name'] is String &&
+              entry['protocol'] is String &&
+              entry['uri'] is String &&
+              (entry['uri'] as String).contains('://'));
+      if (!validRemoteCatalog) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      if (response.body == prefs.getString('remote_servers_cache')) return;
+      await prefs.setString('remote_servers_cache', response.body);
+      if (mounted) await _loadServers(refreshRemote: false);
+    } catch (_) {
+      // Offline or blocked GitHub must never delay or break VPN startup.
+    }
   }
 
   Future<void> _refreshPingsAndSelectBest() async {
+    if (_pingRefreshInProgress) return;
+    _pingRefreshInProgress = true;
     await Future.wait([
       _testPings(_servers),
       _testPings(_customServers),
     ]);
 
-    if (!mounted) return;
+    if (!mounted) {
+      _pingRefreshInProgress = false;
+      return;
+    }
 
     final candidates = [..._servers, ..._customServers]
         .where((server) => server.ping != null && server.ping! >= 0)
@@ -214,8 +227,12 @@ class _ManotoVpnState extends State<ManotoVpn> {
     // that will be used by the Connect action. In Web preview there is no
     // native VPN engine, so the existing selection is kept.
     if (!kIsWeb && candidates.isNotEmpty) {
-      setState(() => _selectedServer = candidates.first);
+      final best = candidates.first;
+      setState(() => _selectedServer = best);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_best_uri', best.uri);
     }
+    _pingRefreshInProgress = false;
   }
 
   Future<void> _testPings(List<Server> list) async {
@@ -232,10 +249,12 @@ class _ManotoVpnState extends State<ManotoVpn> {
     await Future.wait(list.map((s) async {
       try {
         final parsed = FlutterVless.parse(s.uri);
-        final delay = await _vless.getServerDelay(
-          config: parsed.getFullConfiguration(),
-          url: 'https://www.gstatic.com/generate_204',
-        );
+        final delay = await _vless
+            .getServerDelay(
+              config: parsed.getFullConfiguration(),
+              url: 'https://www.gstatic.com/generate_204',
+            )
+            .timeout(const Duration(seconds: 2));
         if (mounted) setState(() => s.ping = delay);
       } catch (_) {
         if (mounted) setState(() => s.ping = -1);
@@ -272,10 +291,9 @@ class _ManotoVpnState extends State<ManotoVpn> {
       if (_isConnected || _isConnecting) {
         await _vless.stopVless();
       } else {
-        // Always use the best measured endpoint when the user taps Connect.
-        // This also covers the case where ping checks completed after the
-        // first frame was rendered.
-        await _refreshPingsAndSelectBest();
+        // Use the cached/last measured best endpoint immediately. A fresh
+        // ping refresh continues in the background and applies to the next
+        // connection attempt, so Connect never waits for every server.
         final server = _selectedServer;
 
         if (server == null) {
