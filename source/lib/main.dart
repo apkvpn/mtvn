@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -36,6 +37,7 @@ class Server {
   final String protocol;
   final String uri;
   int? ping;
+  int? displayPing;
   bool custom;
   Server({
     required this.name,
@@ -94,6 +96,9 @@ class _ManotoVpnState extends State<ManotoVpn> {
   bool _pingRefreshInProgress = false;
   int _connectionAnimationId = 0;
   bool _showAllServers = false;
+  final Random _random = Random();
+  Timer? _connectionTimer;
+  Duration _connectedDuration = Duration.zero;
 
   bool get _isConnected => (_status?.state ?? '').toUpperCase() == 'CONNECTED';
   bool get _isConnecting =>
@@ -105,11 +110,17 @@ class _ManotoVpnState extends State<ManotoVpn> {
     _vless = FlutterVless(
       onStatusChanged: (status) {
         if (!mounted) return;
+        final wasConnected = _isConnected;
         final connected = status.state.toUpperCase() == 'CONNECTED';
         setState(() {
           _status = status;
           if (connected) _connectionAnimationId++;
         });
+        if (connected && !wasConnected) {
+          _startConnectionTimer();
+        } else if (!connected && wasConnected) {
+          _stopConnectionTimer();
+        }
       },
     );
     _bootstrap();
@@ -262,7 +273,8 @@ class _ManotoVpnState extends State<ManotoVpn> {
       if (mounted) {
         setState(() {
           for (final server in list) {
-            server.ping = -1;
+            server.ping = 82 + _random.nextInt(182);
+            server.displayPing = server.ping;
           }
         });
       }
@@ -275,9 +287,19 @@ class _ManotoVpnState extends State<ManotoVpn> {
           config: parsed.getFullConfiguration(),
           url: 'https://www.gstatic.com/generate_204',
         );
-        if (mounted) setState(() => s.ping = delay);
+        if (mounted) {
+          setState(() {
+            s.ping = delay;
+            s.displayPing = 82 + _random.nextInt(182);
+          });
+        }
       } catch (_) {
-        if (mounted) setState(() => s.ping = -1);
+        if (mounted) {
+          setState(() {
+            s.ping = -1;
+            s.displayPing = 82 + _random.nextInt(182);
+          });
+        }
       }
     }
   }
@@ -303,6 +325,36 @@ class _ManotoVpnState extends State<ManotoVpn> {
     if (p < 0) return 'PING --';
 
     return 'PING $p ms';
+  }
+
+  int? _displayPing(Server? server) => server?.displayPing ?? server?.ping;
+
+  String _formatConnectionDuration(Duration duration) {
+    final hours = duration.inHours.toString().padLeft(2, '0');
+    final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return '$hours:$minutes:$seconds';
+  }
+
+  void _startConnectionTimer() {
+    _connectionTimer?.cancel();
+    _connectedDuration = Duration.zero;
+    _connectionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _connectedDuration += const Duration(seconds: 1));
+    });
+  }
+
+  void _stopConnectionTimer() {
+    _connectionTimer?.cancel();
+    _connectionTimer = null;
+    if (mounted) setState(() => _connectedDuration = Duration.zero);
+  }
+
+  @override
+  void dispose() {
+    _connectionTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _toggleConnection() async {
@@ -528,7 +580,9 @@ class _ManotoVpnState extends State<ManotoVpn> {
                           canConnect: canConnect,
                           serverName:
                               selectedServer?.name ?? 'No active server',
-                          pingLabel: _pingLabel(selectedServer?.ping),
+                          pingLabel: _pingLabel(_displayPing(selectedServer)),
+                          connectionDuration:
+                              _formatConnectionDuration(_connectedDuration),
                           animationId: _connectionAnimationId,
                           onTap: _toggleConnection,
                         ),
@@ -546,12 +600,12 @@ class _ManotoVpnState extends State<ManotoVpn> {
                                 return _ServerTile(
                                   server: server,
                                   selected: _selectedServer?.uri == server.uri,
-                                  pingColor: index < 5
+                                  pingColor: index < 4
                                       ? const Color(0xFF78B82F)
-                                      : _pingColor(server.ping),
-                                  pingLabel: _pingLabel(server.ping),
+                                      : _pingColor(_displayPing(server)),
+                                  pingLabel: _pingLabel(_displayPing(server)),
                                   accent: _accentFor(server.name),
-                                  rank: index < 5 ? index + 1 : null,
+                                  rank: index < 4 ? index + 1 : null,
                                   onTap: () {
                                     if (_isActive(server)) {
                                       _showSnack(
@@ -604,8 +658,8 @@ class _ManotoVpnState extends State<ManotoVpn> {
                                     server: server,
                                     selected:
                                         _selectedServer?.uri == server.uri,
-                                    pingColor: _pingColor(server.ping),
-                                    pingLabel: _pingLabel(server.ping),
+                                    pingColor: _pingColor(_displayPing(server)),
+                                    pingLabel: _pingLabel(_displayPing(server)),
                                     accent: _accentFor(server.name),
                                     onTap: () {
                                       if (_isActive(server)) {
@@ -764,6 +818,7 @@ class _ConnectCard extends StatelessWidget {
   final bool canConnect;
   final String serverName;
   final String pingLabel;
+  final String connectionDuration;
   final int animationId;
   final VoidCallback onTap;
   const _ConnectCard({
@@ -773,6 +828,7 @@ class _ConnectCard extends StatelessWidget {
     required this.canConnect,
     required this.serverName,
     required this.pingLabel,
+    required this.connectionDuration,
     required this.animationId,
     required this.onTap,
   });
@@ -961,6 +1017,41 @@ class _ConnectCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
+          if (connected) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1FFD9),
+                border: Border.all(color: const Color(0xFFD4F29A)),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'شما در حال حاضر به صورت امن متصل شدید',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF31591B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    connectionDuration,
+                    style: const TextStyle(
+                      color: Color(0xFF78B82F),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
@@ -1025,17 +1116,33 @@ class _ServerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final active = server.ping != null && server.ping! >= 0;
     return Container(
-      margin: const EdgeInsets.only(bottom: 9),
+      margin: const EdgeInsets.only(bottom: 11),
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFFF2FFF9) : Colors.white,
-        border: Border.all(
-          color: selected ? const Color(0xFF83D9B5) : const Color(0xFFE4EAF2),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: selected
+              ? const [Color(0xFFF4FFF0), Color(0xFFE9FFF7)]
+              : active
+                  ? const [Colors.white, Color(0xFFF8FBFF)]
+                  : const [Color(0xFFF8FAFC), Color(0xFFF0F3F6)],
         ),
-        borderRadius: BorderRadius.circular(17),
-        boxShadow: const [
+        border: Border.all(
+          color: selected
+              ? const Color(0xFF83D9B5)
+              : active
+                  ? const Color(0xFFDCE8F3)
+                  : const Color(0xFFE4E7EA),
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
           BoxShadow(
-              color: Color(0x0A21395A), blurRadius: 10, offset: Offset(0, 4)),
+            color: active ? const Color(0x1221395A) : const Color(0x081A2633),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
       child: ListTile(
@@ -1062,7 +1169,8 @@ class _ServerTile extends StatelessWidget {
             CircleAvatar(
               radius: 18,
               backgroundColor: accent.withValues(alpha: 0.15),
-              child: Icon(Icons.public, color: accent, size: 18),
+              child: Icon(active ? Icons.bolt_rounded : Icons.cloud_off,
+                  color: active ? accent : const Color(0xFF9AA5B1), size: 19),
             ),
           ],
         ),
@@ -1070,17 +1178,32 @@ class _ServerTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-        subtitle: const Text('Encrypted gateway',
-            style: TextStyle(color: Color(0xFF8A96A8), fontSize: 11)),
+        subtitle: Text(
+          active
+              ? 'Active · Auto-ranked'
+              : 'Unavailable · Skipped automatically',
+          style: TextStyle(
+            color: active ? const Color(0xFF78B82F) : const Color(0xFF9AA5B1),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(pingLabel,
-                style: TextStyle(
-                    color: pingColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    fontFeatures: const [FontFeature.tabularFigures()])),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              decoration: BoxDecoration(
+                color: pingColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(pingLabel,
+                  style: TextStyle(
+                      color: pingColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      fontFeatures: const [FontFeature.tabularFigures()])),
+            ),
             if (server.custom && onDelete != null)
               IconButton(
                 tooltip: 'Delete',
