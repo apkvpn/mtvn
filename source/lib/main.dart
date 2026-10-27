@@ -92,6 +92,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
   bool _bestServerReady = false;
   bool _busy = false;
   bool _pingRefreshInProgress = false;
+  int _connectionAnimationId = 0;
   bool _showAllServers = false;
 
   bool get _isConnected => (_status?.state ?? '').toUpperCase() == 'CONNECTED';
@@ -103,7 +104,12 @@ class _ManotoVpnState extends State<ManotoVpn> {
     super.initState();
     _vless = FlutterVless(
       onStatusChanged: (status) {
-        if (mounted) setState(() => _status = status);
+        if (!mounted) return;
+        final connected = status.state.toUpperCase() == 'CONNECTED';
+        setState(() {
+          _status = status;
+          if (connected) _connectionAnimationId++;
+        });
       },
     );
     _bootstrap();
@@ -290,8 +296,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
     if (p == null) return 'PING ...';
     if (p < 0) return 'PING --';
 
-    final displayPing = (p / 10).round();
-    return 'PING $displayPing';
+    return 'PING $p ms';
   }
 
   Future<void> _toggleConnection() async {
@@ -432,169 +437,248 @@ class _ManotoVpnState extends State<ManotoVpn> {
 
     return Scaffold(
       endDrawer: const _AppDrawer(),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF8FBFF), Color(0xFFEEF3F8)],
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8FBFF), Color(0xFFEEF3F8)],
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 12, 6),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFB7F34A),
+                            borderRadius: BorderRadius.circular(13),
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x559AD72F),
+                                blurRadius: 18,
+                                offset: Offset(0, 7),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            'M',
+                            style: TextStyle(
+                              color: Color(0xFF142015),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Manoto VPN',
+                          style: TextStyle(
+                            color: Color(0xFF152238),
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const Spacer(),
+                        Builder(
+                          builder: (context) => IconButton(
+                            tooltip: 'Open menu',
+                            onPressed: () =>
+                                Scaffold.of(context).openEndDrawer(),
+                            icon: const Icon(Icons.menu_rounded),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF152238),
+                              side: const BorderSide(color: Color(0xFFE4EAF2)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(12)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      children: [
+                        _ConnectCard(
+                          connected: _isConnected,
+                          connecting:
+                              _isConnecting || _busy || !_bestServerReady,
+                          serverReady: _bestServerReady,
+                          serverName: selectedServer?.name ?? 'Loading...',
+                          pingLabel: _pingLabel(selectedServer?.ping),
+                          animationId: _connectionAnimationId,
+                          onTap: _toggleConnection,
+                        ),
+                        const SizedBox(height: 16),
+                        _PanelCard(
+                          title: 'Recommended servers',
+                          trailing: rankedServers.isEmpty
+                              ? null
+                              : '${rankedServers.length} available',
+                          child: Column(
+                            children: [
+                              ...visibleServers.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final server = entry.value;
+                                return _ServerTile(
+                                  server: server,
+                                  selected: _selectedServer?.uri == server.uri,
+                                  pingColor: index < 5
+                                      ? const Color(0xFF78B82F)
+                                      : _pingColor(server.ping),
+                                  pingLabel: _pingLabel(server.ping),
+                                  accent: _accentFor(server.name),
+                                  rank: index < 5 ? index + 1 : null,
+                                  onTap: () =>
+                                      setState(() => _selectedServer = server),
+                                );
+                              }),
+                              if (rankedServers.length > 10)
+                                TextButton.icon(
+                                  onPressed: () => setState(() {
+                                    _showAllServers = !_showAllServers;
+                                  }),
+                                  icon: Icon(_showAllServers
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down),
+                                  label: Text(_showAllServers
+                                      ? 'Show less'
+                                      : 'Show ${rankedServers.length - 6} more'),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        _PanelCard(
+                          title: 'Import a configuration',
+                          trailing: 'Stored on device',
+                          child: Column(
+                            children: [
+                              if (_customServers.isEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(15),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFD),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                        color: const Color(0xFFE4EAF2)),
+                                  ),
+                                  child: const Text(
+                                    'No custom configurations added yet',
+                                    style: TextStyle(color: Color(0xFF718096)),
+                                  ),
+                                )
+                              else
+                                ..._customServers.map(
+                                  (server) => _ServerTile(
+                                    server: server,
+                                    selected:
+                                        _selectedServer?.uri == server.uri,
+                                    pingColor: _pingColor(server.ping),
+                                    pingLabel: _pingLabel(server.ping),
+                                    accent: _accentFor(server.name),
+                                    onTap: () => setState(
+                                        () => _selectedServer = server),
+                                    onDelete: () => _deleteCustomServer(server),
+                                  ),
+                                ),
+                              const SizedBox(height: 4),
+                              _BottomBar(
+                                onAdd: _addManually,
+                                onPaste: _addFromClipboard,
+                                onScan: _scanQr,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
+          if (!_bestServerReady) const _StartupScanOverlay(),
+        ],
+      ),
+    );
+  }
+}
+
+class _StartupScanOverlay extends StatelessWidget {
+  const _StartupScanOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: ColoredBox(
+        color: Color(0xFFF4F8FC),
+        child: Center(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 12, 6),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFB7F34A),
-                        borderRadius: BorderRadius.circular(13),
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x559AD72F),
-                            blurRadius: 18,
-                            offset: Offset(0, 7),
-                          ),
-                        ],
-                      ),
-                      child: const Text(
-                        'M',
-                        style: TextStyle(
-                          color: Color(0xFF142015),
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Manoto VPN',
-                      style: TextStyle(
-                        color: Color(0xFF152238),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const Spacer(),
-                    Builder(
-                      builder: (context) => IconButton(
-                        tooltip: 'Open menu',
-                        onPressed: () => Scaffold.of(context).openEndDrawer(),
-                        icon: const Icon(Icons.menu_rounded),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF152238),
-                          side: const BorderSide(color: Color(0xFFE4EAF2)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                        ),
-                      ),
+              Container(
+                width: 92,
+                height: 92,
+                decoration: BoxDecoration(
+                  color: Color(0xFFB7F34A),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x559AD72F),
+                      blurRadius: 30,
+                      offset: Offset(0, 14),
                     ),
                   ],
                 ),
+                child: const Center(
+                  child: Text(
+                    'M',
+                    style: TextStyle(
+                      color: Color(0xFF142015),
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
               ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  children: [
-                    _ConnectCard(
-                      connected: _isConnected,
-                      connecting: _isConnecting || _busy || !_bestServerReady,
-                      serverReady: _bestServerReady,
-                      serverName: selectedServer?.name ?? 'Loading...',
-                      pingLabel: _pingLabel(selectedServer?.ping),
-                      onTap: _toggleConnection,
-                    ),
-                    const SizedBox(height: 16),
-                    _PanelCard(
-                      title: 'Recommended servers',
-                      trailing: rankedServers.isEmpty
-                          ? null
-                          : '${rankedServers.length} available',
-                      child: Column(
-                        children: [
-                          ...visibleServers.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final server = entry.value;
-                            return _ServerTile(
-                              server: server,
-                              selected: _selectedServer?.uri == server.uri,
-                              pingColor: index < 5
-                                  ? const Color(0xFF78B82F)
-                                  : _pingColor(server.ping),
-                              pingLabel: _pingLabel(server.ping),
-                              accent: _accentFor(server.name),
-                              rank: index < 5 ? index + 1 : null,
-                              onTap: () =>
-                                  setState(() => _selectedServer = server),
-                            );
-                          }),
-                          if (rankedServers.length > 10)
-                            TextButton.icon(
-                              onPressed: () => setState(() {
-                                _showAllServers = !_showAllServers;
-                              }),
-                              icon: Icon(_showAllServers
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down),
-                              label: Text(_showAllServers
-                                  ? 'Show less'
-                                  : 'Show ${rankedServers.length - 6} more'),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    _PanelCard(
-                      title: 'Import a configuration',
-                      trailing: 'Stored on device',
-                      child: Column(
-                        children: [
-                          if (_customServers.isEmpty)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFD),
-                                borderRadius: BorderRadius.circular(14),
-                                border:
-                                    Border.all(color: const Color(0xFFE4EAF2)),
-                              ),
-                              child: const Text(
-                                'No custom configurations added yet',
-                                style: TextStyle(color: Color(0xFF718096)),
-                              ),
-                            )
-                          else
-                            ..._customServers.map(
-                              (server) => _ServerTile(
-                                server: server,
-                                selected: _selectedServer?.uri == server.uri,
-                                pingColor: _pingColor(server.ping),
-                                pingLabel: _pingLabel(server.ping),
-                                accent: _accentFor(server.name),
-                                onTap: () =>
-                                    setState(() => _selectedServer = server),
-                                onDelete: () => _deleteCustomServer(server),
-                              ),
-                            ),
-                          const SizedBox(height: 4),
-                          _BottomBar(
-                            onAdd: _addManually,
-                            onPaste: _addFromClipboard,
-                            onScan: _scanQr,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 28),
+              const Text(
+                'Finding your fastest server',
+                style: TextStyle(
+                  color: Color(0xFF152238),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Scanning all available connections…',
+                style: TextStyle(color: Color(0xFF718096)),
+              ),
+              const SizedBox(height: 24),
+              const SizedBox(
+                width: 170,
+                child: LinearProgressIndicator(
+                  minHeight: 6,
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  color: Color(0xFF83C932),
+                  backgroundColor: Color(0xFFDCE8D1),
                 ),
               ),
             ],
@@ -658,6 +742,7 @@ class _ConnectCard extends StatelessWidget {
   final bool serverReady;
   final String serverName;
   final String pingLabel;
+  final int animationId;
   final VoidCallback onTap;
   const _ConnectCard({
     required this.connected,
@@ -665,6 +750,7 @@ class _ConnectCard extends StatelessWidget {
     required this.serverReady,
     required this.serverName,
     required this.pingLabel,
+    required this.animationId,
     required this.onTap,
   });
 
