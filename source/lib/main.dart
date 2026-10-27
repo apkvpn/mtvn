@@ -89,6 +89,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
   List<Server> _customServers = [];
   Server? _selectedServer;
   bool _initialized = false;
+  bool _bestServerReady = false;
   bool _busy = false;
   bool _pingRefreshInProgress = false;
   bool _showAllServers = false;
@@ -114,11 +115,12 @@ class _ManotoVpnState extends State<ManotoVpn> {
     if (!kIsWeb) {
       await _vless.initializeVless();
     }
-    _initialized = true;
-    await _loadServers();
+    await _loadServers(initialSelection: true);
+    if (mounted) setState(() => _initialized = true);
   }
 
-  Future<void> _loadServers({bool refreshRemote = true}) async {
+  Future<void> _loadServers(
+      {bool refreshRemote = true, bool initialSelection = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final bundledRaw =
         await rootBundle.loadString('assets/configs/default_servers.json');
@@ -169,7 +171,14 @@ class _ManotoVpnState extends State<ManotoVpn> {
       _selectedServer = nextSelected;
     });
 
-    unawaited(_refreshPingsAndSelectBest());
+    if (initialSelection) {
+      await _refreshPingsAndSelectBest();
+    } else {
+      unawaited(_refreshPingsAndSelectBest());
+    }
+    if (initialSelection && mounted) {
+      setState(() => _bestServerReady = true);
+    }
     if (refreshRemote) unawaited(_refreshRemoteCatalog());
   }
 
@@ -232,6 +241,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('last_best_uri', best.uri);
     }
+    if (kIsWeb || candidates.isNotEmpty) _bestServerReady = true;
     _pingRefreshInProgress = false;
   }
 
@@ -285,7 +295,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
   }
 
   Future<void> _toggleConnection() async {
-    if (_busy || !_initialized) return;
+    if (_busy || !_initialized || !_bestServerReady) return;
     setState(() => _busy = true);
     try {
       if (_isConnected || _isConnecting) {
@@ -496,7 +506,8 @@ class _ManotoVpnState extends State<ManotoVpn> {
                   children: [
                     _ConnectCard(
                       connected: _isConnected,
-                      connecting: _isConnecting || _busy,
+                      connecting: _isConnecting || _busy || !_bestServerReady,
+                      serverReady: _bestServerReady,
                       serverName: selectedServer?.name ?? 'Loading...',
                       pingLabel: _pingLabel(selectedServer?.ping),
                       onTap: _toggleConnection,
@@ -644,12 +655,14 @@ class _PanelCard extends StatelessWidget {
 class _ConnectCard extends StatelessWidget {
   final bool connected;
   final bool connecting;
+  final bool serverReady;
   final String serverName;
   final String pingLabel;
   final VoidCallback onTap;
   const _ConnectCard({
     required this.connected,
     required this.connecting,
+    required this.serverReady,
     required this.serverName,
     required this.pingLabel,
     required this.onTap,
@@ -721,7 +734,7 @@ class _ConnectCard extends StatelessWidget {
                     ),
                   ),
                 GestureDetector(
-                  onTap: onTap,
+                  onTap: serverReady ? onTap : null,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     width: 176,
@@ -737,9 +750,11 @@ class _ConnectCard extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: connected
-                            ? const [Color(0xFFD9FF72), Color(0xFFA7E832)]
-                            : const [Color(0xFF25282D), Color(0xFF111316)],
+                        colors: !serverReady
+                            ? const [Color(0xFF66717C), Color(0xFF414A52)]
+                            : connected
+                                ? const [Color(0xFFD9FF72), Color(0xFFA7E832)]
+                                : const [Color(0xFF25282D), Color(0xFF111316)],
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -752,36 +767,59 @@ class _ConnectCard extends StatelessWidget {
                       ],
                     ),
                     child: Center(
-                      child: connecting
-                          ? const CircularProgressIndicator(
-                              color: Color(0xFF152238))
-                          : Column(
+                      child: !serverReady
+                          ? Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  connected ? 'Disconnect' : 'Connect',
-                                  style: TextStyle(
-                                    color: connected
-                                        ? const Color(0xFF1B3514)
-                                        : Colors.white,
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.w900,
+                                const SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: Color(0xFFD9FF72),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 12),
                                 Text(
-                                  connected
-                                      ? 'Tap to disconnect'
-                                      : 'Tap to secure',
-                                  style: TextStyle(
-                                    color: connected
-                                        ? const Color(0xFF527B24)
-                                        : Colors.white70,
+                                  'Finding best server',
+                                  style: const TextStyle(
+                                    color: Colors.white,
                                     fontSize: 12,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ],
-                            ),
+                            )
+                          : connecting
+                              ? const CircularProgressIndicator(
+                                  color: Color(0xFF152238))
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      connected ? 'Connected ✓' : 'Connect',
+                                      style: TextStyle(
+                                        color: connected
+                                            ? const Color(0xFF1B3514)
+                                            : Colors.white,
+                                        fontSize: 21,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      connected
+                                          ? 'Tap to disconnect'
+                                          : 'Tap to secure',
+                                      style: TextStyle(
+                                        color: connected
+                                            ? const Color(0xFF527B24)
+                                            : Colors.white70,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                     ),
                   ),
                 ),
