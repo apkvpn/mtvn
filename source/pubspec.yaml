@@ -1,7 +1,7 @@
 name: manoto_vpn
 description: Manoto VPN - a professional VLESS/Trojan Android VPN client.
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.0+32
 environment:
   sdk: ">=3.3.0 <4.0.0"
 dependencies:
