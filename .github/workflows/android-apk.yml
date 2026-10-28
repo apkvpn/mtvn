@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  build-debug-apk:
+  build-release-apks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,14 +27,14 @@ jobs:
         working-directory: source
         run: flutter pub get
 
-      - name: Build APK 1.0.0+32
+      - name: Build optimized split APKs 1.0.0+32
         working-directory: source
-        run: flutter build apk --debug
+        run: flutter build apk --release --split-per-abi
 
-      - name: Upload APK artifact
+      - name: Upload optimized APKs
         uses: actions/upload-artifact@v4
         with:
-          name: manoto-vpn-v32-debug-apk
-          path: source/build/app/outputs/flutter-apk/app-debug.apk
+          name: manoto-vpn-v32-release-split-apks
+          path: source/build/app/outputs/flutter-apk/app-*-release.apk
           if-no-files-found: error
           retention-days: 14
