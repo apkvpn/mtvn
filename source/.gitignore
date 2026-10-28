@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Never commit signing material or local release credentials.
+key.properties
+*.jks
+*.keystore
+signing-key-KEEP-PRIVATE/

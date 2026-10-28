@@ -5,12 +5,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vless/flutter_vless.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() => runApp(const ManotoVpnApp());
+
+final ValueNotifier<ThemeMode> _themeMode = ValueNotifier(ThemeMode.light);
 
 const String _remoteServersUrl =
     'https://raw.githubusercontent.com/apkvpn/mtvn/main/source/assets/configs/default_servers.json';
@@ -19,16 +22,30 @@ class ManotoVpnApp extends StatelessWidget {
   const ManotoVpnApp({super.key});
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Manoto VPN',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF4F7FB),
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB7F34A)),
-        fontFamily: 'Roboto',
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: _themeMode,
+      builder: (context, mode, _) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Manoto VPN',
+        themeMode: mode,
+        theme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: const Color(0xFFF4F7FB),
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB7F34A)),
+          fontFamily: 'Roboto',
+        ),
+        darkTheme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.dark,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFFB7F34A),
+            brightness: Brightness.dark,
+          ),
+          fontFamily: 'Roboto',
+        ),
+        home: const ManotoVpn(),
       ),
-      home: const ManotoVpn(),
     );
   }
 }
@@ -38,6 +55,8 @@ class Server {
   final String protocol;
   final String uri;
   int? ping;
+  String health = 'checking';
+  DateTime? lastChecked;
   bool custom;
   Server({
     required this.name,
@@ -85,6 +104,7 @@ class ManotoVpn extends StatefulWidget {
 
 class _ManotoVpnState extends State<ManotoVpn> {
   late final FlutterVless _vless;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   VlessStatus? _status;
 
   List<Server> _servers = [];
@@ -96,6 +116,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
   bool _pingRefreshInProgress = false;
   int _connectionAnimationId = 0;
   bool _showAllServers = false;
+  bool _autoConnect = false;
 
   bool get _isConnected => (_status?.state ?? '').toUpperCase() == 'CONNECTED';
   bool get _isConnecting =>
@@ -114,7 +135,30 @@ class _ManotoVpnState extends State<ManotoVpn> {
         });
       },
     );
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      (results) => _onConnectivityChanged(results),
+    );
     _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _onConnectivityChanged(List<ConnectivityResult> results) async {
+    if (!_autoConnect || _isConnected || _busy || !mounted) return;
+    final online = results.any((r) => r != ConnectivityResult.none);
+    if (online && _initialized && _selectedServer != null) {
+      await _connectWithFallback(_selectedServer!);
+    }
+  }
+
+  Future<void> _setAutoConnect(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_connect', value);
+    if (mounted) setState(() => _autoConnect = value);
   }
 
   Future<void> _bootstrap() async {
@@ -123,8 +167,15 @@ class _ManotoVpnState extends State<ManotoVpn> {
     if (!kIsWeb) {
       await _vless.initializeVless();
     }
+    final prefs = await SharedPreferences.getInstance();
+    _autoConnect = prefs.getBool('auto_connect') ?? false;
+    final dark = prefs.getBool('dark_mode');
+    if (dark != null) _themeMode.value = dark ? ThemeMode.dark : ThemeMode.light;
     await _loadServers(initialSelection: true);
     if (mounted) setState(() => _initialized = true);
+    if (_autoConnect && _selectedServer != null) {
+      await _connectWithFallback(_selectedServer!);
+    }
   }
 
   Future<void> _loadServers(
@@ -310,7 +361,15 @@ class _ManotoVpnState extends State<ManotoVpn> {
     final old = _scoreCache[s.uri];
     _scoreCache[s.uri] = old == null ? fresh : old * 0.3 + fresh * 0.7;
     if (mounted) {
-      setState(() => s.ping = ok.isEmpty ? -1 : ok[ok.length ~/ 2]);
+      setState(() {
+        s.ping = ok.isEmpty ? -1 : ok[ok.length ~/ 2];
+        s.health = ok.isEmpty
+            ? 'offline'
+            : s.ping! > 300
+                ? 'weak'
+                : 'online';
+        s.lastChecked = DateTime.now();
+      });
     }
   }
 
@@ -380,7 +439,8 @@ class _ManotoVpnState extends State<ManotoVpn> {
   }
 
   String _pingLabel(int? p) {
-    if (p == null || p < 0) return 'ACTIVE';
+    if (p == null) return 'CHECKING';
+    if (p < 0) return 'OFFLINE';
 
     return 'PING $p ms';
   }
@@ -573,7 +633,10 @@ class _ManotoVpnState extends State<ManotoVpn> {
         _showAllServers ? rankedServers : rankedServers.take(4).toList();
 
     return Scaffold(
-      endDrawer: const _AppDrawer(),
+      endDrawer: _AppDrawer(
+        autoConnect: _autoConnect,
+        onAutoConnectChanged: _setAutoConnect,
+      ),
       body: Stack(
         children: [
           Container(
@@ -1514,9 +1577,19 @@ class _ServerTile extends StatelessWidget {
                         ],
                       ]),
                       const SizedBox(height: 3),
-                      const Text('Encrypted gateway',
+                      Text(
+                          server.health == 'offline'
+                              ? 'Offline · unavailable'
+                              : server.health == 'weak'
+                                  ? 'Online · weak connection'
+                                  : server.health == 'online'
+                                      ? 'Online · encrypted gateway'
+                                      : 'Checking availability…',
                           style: TextStyle(
-                              color: Color(0xFF8A96A8), fontSize: 11)),
+                              color: server.health == 'offline'
+                                  ? const Color(0xFFC45252)
+                                  : const Color(0xFF8A96A8),
+                              fontSize: 11)),
                     ],
                   ),
                 ),
@@ -1622,12 +1695,17 @@ class _BarButton extends StatelessWidget {
 }
 
 class _AppDrawer extends StatelessWidget {
-  const _AppDrawer();
+  final bool autoConnect;
+  final ValueChanged<bool> onAutoConnectChanged;
+  const _AppDrawer({
+    required this.autoConnect,
+    required this.onAutoConnectChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
@@ -1678,6 +1756,29 @@ class _AppDrawer extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             const _DrawerSectionLabel('APP & SUPPORT'),
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: _themeMode,
+              builder: (context, mode, _) => SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Dark mode',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                secondary: const Icon(Icons.dark_mode_outlined),
+                value: mode == ThemeMode.dark,
+                onChanged: (value) async {
+                  _themeMode.value = value ? ThemeMode.dark : ThemeMode.light;
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('dark_mode', value);
+                },
+              ),
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Auto-connect on network change',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              secondary: const Icon(Icons.wifi_find_outlined),
+              value: autoConnect,
+              onChanged: onAutoConnectChanged,
+            ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Data safety',

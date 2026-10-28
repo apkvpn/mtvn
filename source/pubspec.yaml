@@ -9,6 +9,7 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.3
+  connectivity_plus: ^6.1.4
   http: ^1.2.2
   mobile_scanner: ^7.0.0
   flutter_vless: ^1.1.5
