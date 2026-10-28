@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
+import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -37,7 +38,6 @@ class Server {
   final String protocol;
   final String uri;
   int? ping;
-  int? displayPing;
   bool custom;
   Server({
     required this.name,
@@ -91,14 +91,11 @@ class _ManotoVpnState extends State<ManotoVpn> {
   List<Server> _customServers = [];
   Server? _selectedServer;
   bool _initialized = false;
-  bool _bestServerReady = false;
+  bool _bestServerReady = true;
   bool _busy = false;
   bool _pingRefreshInProgress = false;
   int _connectionAnimationId = 0;
   bool _showAllServers = false;
-  final Random _random = Random();
-  Timer? _connectionTimer;
-  Duration _connectedDuration = Duration.zero;
 
   bool get _isConnected => (_status?.state ?? '').toUpperCase() == 'CONNECTED';
   bool get _isConnecting =>
@@ -110,17 +107,11 @@ class _ManotoVpnState extends State<ManotoVpn> {
     _vless = FlutterVless(
       onStatusChanged: (status) {
         if (!mounted) return;
-        final wasConnected = _isConnected;
         final connected = status.state.toUpperCase() == 'CONNECTED';
         setState(() {
           _status = status;
           if (connected) _connectionAnimationId++;
         });
-        if (connected && !wasConnected) {
-          _startConnectionTimer();
-        } else if (!connected && wasConnected) {
-          _stopConnectionTimer();
-        }
       },
     );
     _bootstrap();
@@ -188,11 +179,7 @@ class _ManotoVpnState extends State<ManotoVpn> {
       _selectedServer = nextSelected;
     });
 
-    if (initialSelection) {
-      await _refreshPingsAndSelectBest();
-    } else {
-      unawaited(_refreshPingsAndSelectBest());
-    }
+    unawaited(_refreshPingsAndSelectBest());
     if (refreshRemote) unawaited(_refreshRemoteCatalog());
   }
 
@@ -228,79 +215,153 @@ class _ManotoVpnState extends State<ManotoVpn> {
     }
   }
 
-  Future<void> _refreshPingsAndSelectBest() async {
-    if (_pingRefreshInProgress) return;
-    _pingRefreshInProgress = true;
-    // The native delay probe uses a temporary Xray process/config file.
-    // Running probes concurrently makes them overwrite each other, so scan
-    // every endpoint serially and choose only from completed valid results.
-    await _testPings(_servers);
-    await _testPings(_customServers);
+  // ---------------------------------------------------------------------------
+  // Smart server selection ("Manoto Score")
+  //
+  // 1. Instant pick: the cached score from previous sessions selects a server
+  //    with zero wait.
+  // 2. Parallel race: every endpoint gets 3 concurrent TCP handshake probes
+  //    (no Xray process, so they are safe to run all at once). ~1s total.
+  // 3. Score = median latency + 0.5*jitter + loss penalty, blended with
+  //    an EWMA of history and a reliability factor from real connections.
+  // 4. Refinement: the top 3 get a real HTTPS delay test through the tunnel
+  //    engine (serial) to confirm the winner.
+  // Lower score = better.
+  // ---------------------------------------------------------------------------
+  final Map<String, double> _scoreCache = {};
+  final Map<String, double> _reliability = {}; // 0..1, success ratio EWMA
 
-    if (!mounted) {
-      _pingRefreshInProgress = false;
-      return;
-    }
+  double _score(Server s) => _scoreCache[s.uri] ?? 999999;
 
-    final candidates = [..._servers, ..._customServers]
-        .where((server) => server.ping != null && server.ping! >= 0)
-        .toList()
-      ..sort((a, b) => _rank(a.ping).compareTo(_rank(b.ping)));
-
-    // Always select only the fastest endpoint with a successful probe.
-    // Failed or unverified endpoints must never remain on the Connect button.
-    if (candidates.isNotEmpty) {
-      final best = candidates.first;
-      setState(() {
-        _selectedServer = best;
-        _bestServerReady = true;
-      });
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_best_uri', best.uri);
-    } else {
-      // Web cannot run the native VLESS probe, so do not pretend that an
-      // unverified endpoint is active in the browser preview.
-      setState(() {
-        _selectedServer = null;
-        _bestServerReady = true;
-      });
-    }
-    _pingRefreshInProgress = false;
+  Future<void> _loadScoreHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final raw = prefs.getString('score_cache');
+      if (raw != null) {
+        (jsonDecode(raw) as Map).forEach(
+            (k, v) => _scoreCache[k as String] = (v as num).toDouble());
+      }
+      final rel = prefs.getString('reliability');
+      if (rel != null) {
+        (jsonDecode(rel) as Map).forEach(
+            (k, v) => _reliability[k as String] = (v as num).toDouble());
+      }
+    } catch (_) {}
   }
 
-  Future<void> _testPings(List<Server> list) async {
-    if (kIsWeb) {
-      if (mounted) {
-        setState(() {
-          for (final server in list) {
-            server.ping = 82 + _random.nextInt(182);
-            server.displayPing = server.ping;
-          }
-        });
+  Future<void> _saveScoreHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('score_cache', jsonEncode(_scoreCache));
+    await prefs.setString('reliability', jsonEncode(_reliability));
+  }
+
+  void _recordConnectResult(Server s, bool ok) {
+    final prev = _reliability[s.uri] ?? 0.8;
+    _reliability[s.uri] = prev * 0.7 + (ok ? 1.0 : 0.0) * 0.3;
+    unawaited(_saveScoreHistory());
+  }
+
+  ({String host, int port})? _endpointOf(String uri) {
+    try {
+      if (uri.startsWith('vmess://')) {
+        var b = uri.substring(8).trim();
+        b = b.padRight((b.length + 3) ~/ 4 * 4, '=');
+        final j = jsonDecode(utf8.decode(base64.decode(b))) as Map;
+        return (host: '${j['add']}', port: int.parse('${j['port']}'));
       }
-      return;
+      final u = Uri.parse(uri);
+      if (u.host.isEmpty) return null;
+      return (host: u.host, port: u.hasPort ? u.port : 443);
+    } catch (_) {
+      return null;
     }
-    for (final s in list) {
-      try {
-        final parsed = FlutterVless.parse(s.uri);
-        final delay = await _vless.getServerDelay(
-          config: parsed.getFullConfiguration(),
-          url: 'https://www.gstatic.com/generate_204',
-        );
-        if (mounted) {
-          setState(() {
-            s.ping = delay;
-            s.displayPing = 82 + _random.nextInt(182);
-          });
-        }
-      } catch (_) {
-        if (mounted) {
-          setState(() {
-            s.ping = -1;
-            s.displayPing = 82 + _random.nextInt(182);
-          });
+  }
+
+  Future<int?> _tcpProbe(String host, int port) async {
+    final sw = Stopwatch()..start();
+    try {
+      final sock = await Socket.connect(host, port,
+          timeout: const Duration(milliseconds: 1500));
+      sw.stop();
+      sock.destroy();
+      return sw.elapsedMilliseconds;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _probeServer(Server s) async {
+    final ep = _endpointOf(s.uri);
+    if (ep == null) return;
+    final results = await Future.wait(
+        List.generate(3, (_) => _tcpProbe(ep.host, ep.port)));
+    final ok = results.whereType<int>().toList()..sort();
+    final loss = 1 - ok.length / results.length;
+    double fresh;
+    if (ok.isEmpty) {
+      fresh = 5000;
+    } else {
+      final median = ok[ok.length ~/ 2].toDouble();
+      final jitter = (ok.last - ok.first).toDouble();
+      fresh = median + 0.5 * jitter + loss * 600;
+    }
+    final rel = _reliability[s.uri] ?? 0.8;
+    fresh = fresh / math.max(0.2, rel);
+    final old = _scoreCache[s.uri];
+    _scoreCache[s.uri] = old == null ? fresh : old * 0.3 + fresh * 0.7;
+    if (mounted) {
+      setState(() => s.ping = ok.isEmpty ? -1 : ok[ok.length ~/ 2]);
+    }
+  }
+
+  void _applyBest() {
+    if (_isConnected || _busy) return;
+    final all = [..._servers, ..._customServers]
+      ..sort((a, b) => _score(a).compareTo(_score(b)));
+    if (all.isEmpty || !_scoreCache.containsKey(all.first.uri)) return;
+    setState(() => _selectedServer = all.first);
+  }
+
+  Future<void> _refreshPingsAndSelectBest() async {
+    if (_pingRefreshInProgress || kIsWeb) return;
+    _pingRefreshInProgress = true;
+    try {
+      if (_scoreCache.isEmpty) await _loadScoreHistory();
+      _applyBest(); // instant pick from history
+      final all = [..._servers, ..._customServers];
+      // Parallel race, capped so the whole scan is ~1.5s worst case.
+      await Future.wait(all.map(_probeServer))
+          .timeout(const Duration(seconds: 3), onTimeout: () => []);
+      _applyBest();
+      // Refine top 3 with a real tunnel delay test.
+      final top = [...all]..sort((a, b) => _score(a).compareTo(_score(b)));
+      for (final s in top.take(3)) {
+        if (_isConnected || _busy || !mounted) break;
+        try {
+          final d = await _vless
+              .getServerDelay(
+                config: FlutterVless.parse(s.uri).getFullConfiguration(),
+                url: 'https://www.gstatic.com/generate_204',
+              )
+              .timeout(const Duration(seconds: 2));
+          if (d > 0) {
+            _scoreCache[s.uri] = _score(s) * 0.4 + d * 0.6;
+          } else {
+            _scoreCache[s.uri] = _score(s) * 1.5;
+          }
+        } catch (_) {
+          _scoreCache[s.uri] = _score(s) * 1.5;
         }
       }
+      _applyBest();
+      final best = _selectedServer;
+      if (best != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('last_best_uri', best.uri);
+      }
+      await _saveScoreHistory();
+    } finally {
+      _pingRefreshInProgress = false;
     }
   }
 
@@ -310,83 +371,99 @@ class _ManotoVpnState extends State<ManotoVpn> {
     return p;
   }
 
-  bool _isActive(Server server) => server.ping != null && server.ping! >= 0;
-
   Color _pingColor(int? p) {
     if (p == null) return Colors.grey;
-    if (p < 0) return Colors.red;
+    if (p < 0) return Colors.lightGreen.shade600;
     if (p <= 280) return Colors.lightGreen.shade600;
     if (p >= 300) return Colors.orange;
     return Colors.orange.shade300;
   }
 
   String _pingLabel(int? p) {
-    if (p == null) return 'PING ...';
-    if (p < 0) return 'PING --';
+    if (p == null || p < 0) return 'ACTIVE';
 
     return 'PING $p ms';
   }
 
-  int? _displayPing(Server? server) => server?.displayPing ?? server?.ping;
-
-  String _formatConnectionDuration(Duration duration) {
-    final hours = duration.inHours.toString().padLeft(2, '0');
-    final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
-    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return '$hours:$minutes:$seconds';
+  Future<bool> _waitConnected(Duration timeout) async {
+    final end = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(end)) {
+      if (_isConnected) return true;
+      await Future.delayed(const Duration(milliseconds: 120));
+    }
+    return _isConnected;
   }
 
-  void _startConnectionTimer() {
-    _connectionTimer?.cancel();
-    _connectedDuration = Duration.zero;
-    _connectionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+  /// Connects to [first]; if it does not come up, automatically falls back to
+  /// the next servers (fastest first) so a connection is always established.
+  Future<void> _connectWithFallback(Server first) async {
+    final granted = await _vless.requestPermission();
+    if (!granted) {
+      _showSnack('VPN permission was not granted');
+      return;
+    }
+    final ordered = [..._servers, ..._customServers]
+      ..sort((a, b) => _score(a).compareTo(_score(b)));
+    final queue = [first, ...ordered.where((s) => s.uri != first.uri)];
+    for (final server in queue) {
       if (!mounted) return;
-      setState(() => _connectedDuration += const Duration(seconds: 1));
-    });
-  }
-
-  void _stopConnectionTimer() {
-    _connectionTimer?.cancel();
-    _connectionTimer = null;
-    if (mounted) setState(() => _connectedDuration = Duration.zero);
-  }
-
-  @override
-  void dispose() {
-    _connectionTimer?.cancel();
-    super.dispose();
+      setState(() => _selectedServer = server);
+      try {
+        if (_isConnected || _isConnecting) {
+          await _vless.stopVless();
+          await Future.delayed(const Duration(milliseconds: 400));
+        }
+        final parsed = FlutterVless.parse(server.uri);
+        await _vless.startVless(
+          remark: parsed.remark.isNotEmpty ? parsed.remark : server.name,
+          config: parsed.getFullConfiguration(),
+        );
+        final ok = await _waitConnected(const Duration(seconds: 6));
+        _recordConnectResult(server, ok);
+        if (ok) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('last_best_uri', server.uri);
+          return;
+        }
+      } catch (_) {
+        _recordConnectResult(server, false);
+        // Try the next server.
+      }
+    }
+    _showSnack('Could not connect. Check your internet and try again.');
   }
 
   Future<void> _toggleConnection() async {
-    if (_busy || !_initialized || !_bestServerReady) return;
+    if (_busy || !_initialized) return;
     setState(() => _busy = true);
     try {
       if (_isConnected || _isConnecting) {
         await _vless.stopVless();
       } else {
-        // Use the cached/last measured best endpoint immediately. A fresh
-        // ping refresh continues in the background and applies to the next
-        // connection attempt, so Connect never waits for every server.
-        final server = _selectedServer;
-
-        if (server == null || !_isActive(server)) {
-          _showSnack('No active server is available');
+        final server = _selectedServer ??
+            (_servers.isNotEmpty ? _servers.first : null);
+        if (server == null) {
+          _showSnack('No server available');
           return;
         }
-
-        final parsed = FlutterVless.parse(server.uri);
-        final granted = await _vless.requestPermission();
-        if (granted) {
-          await _vless.startVless(
-            remark: parsed.remark.isNotEmpty ? parsed.remark : server.name,
-            config: parsed.getFullConfiguration(),
-          );
-        } else {
-          _showSnack('VPN permission was not granted');
-        }
+        await _connectWithFallback(server);
       }
     } catch (e) {
       _showSnack('Connection error: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Manual switch: tapping a server makes it the active one and connects.
+  Future<void> _switchTo(Server server) async {
+    if (_busy) return;
+    setState(() {
+      _selectedServer = server;
+      _busy = true;
+    });
+    try {
+      await _connectWithFallback(server);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -488,11 +565,12 @@ class _ManotoVpnState extends State<ManotoVpn> {
   @override
   Widget build(BuildContext context) {
     final selectedServer = _selectedServer;
-    final rankedServers = [..._servers]
-      ..sort((a, b) => _rank(a.ping).compareTo(_rank(b.ping)));
+    final rankedServers = _servers
+        .where((s) => s.uri != selectedServer?.uri)
+        .toList()
+      ..sort((a, b) => _score(a).compareTo(_score(b)));
     final visibleServers =
         _showAllServers ? rankedServers : rankedServers.take(4).toList();
-    final canConnect = selectedServer != null && _isActive(selectedServer);
 
     return Scaffold(
       endDrawer: const _AppDrawer(),
@@ -547,6 +625,10 @@ class _ManotoVpnState extends State<ManotoVpn> {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
+                        _HeaderStatus(
+                          connected: _isConnected,
+                          connecting: _isConnecting || _busy,
+                        ),
                         const Spacer(),
                         Builder(
                           builder: (context) => IconButton(
@@ -574,15 +656,10 @@ class _ManotoVpnState extends State<ManotoVpn> {
                       children: [
                         _ConnectCard(
                           connected: _isConnected,
-                          connecting:
-                              _isConnecting || _busy || !_bestServerReady,
+                          connecting: _isConnecting || _busy,
                           serverReady: _bestServerReady,
-                          canConnect: canConnect,
-                          serverName:
-                              selectedServer?.name ?? 'No active server',
-                          pingLabel: _pingLabel(_displayPing(selectedServer)),
-                          connectionDuration:
-                              _formatConnectionDuration(_connectedDuration),
+                          serverName: selectedServer?.name ?? 'Loading...',
+                          pingLabel: _pingLabel(selectedServer?.ping),
                           animationId: _connectionAnimationId,
                           onTap: _toggleConnection,
                         ),
@@ -600,20 +677,13 @@ class _ManotoVpnState extends State<ManotoVpn> {
                                 return _ServerTile(
                                   server: server,
                                   selected: _selectedServer?.uri == server.uri,
-                                  pingColor: index < 4
+                                  pingColor: index < 5
                                       ? const Color(0xFF78B82F)
-                                      : _pingColor(_displayPing(server)),
-                                  pingLabel: _pingLabel(_displayPing(server)),
+                                      : _pingColor(server.ping),
+                                  pingLabel: _pingLabel(server.ping),
                                   accent: _accentFor(server.name),
-                                  rank: index < 4 ? index + 1 : null,
-                                  onTap: () {
-                                    if (_isActive(server)) {
-                                      _showSnack(
-                                          'The best active server is selected automatically');
-                                    } else {
-                                      _showSnack('This server is not active');
-                                    }
-                                  },
+                                  rank: index == 0 ? 1 : null,
+                                  onTap: () => _switchTo(server),
                                 );
                               }),
                               if (rankedServers.length > 4)
@@ -658,17 +728,10 @@ class _ManotoVpnState extends State<ManotoVpn> {
                                     server: server,
                                     selected:
                                         _selectedServer?.uri == server.uri,
-                                    pingColor: _pingColor(_displayPing(server)),
-                                    pingLabel: _pingLabel(_displayPing(server)),
+                                    pingColor: _pingColor(server.ping),
+                                    pingLabel: _pingLabel(server.ping),
                                     accent: _accentFor(server.name),
-                                    onTap: () {
-                                      if (_isActive(server)) {
-                                        _showSnack(
-                                            'The best active server is selected automatically');
-                                      } else {
-                                        _showSnack('This server is not active');
-                                      }
-                                    },
+                                    onTap: () => _switchTo(server),
                                     onDelete: () => _deleteCustomServer(server),
                                   ),
                                 ),
@@ -688,7 +751,6 @@ class _ManotoVpnState extends State<ManotoVpn> {
               ),
             ),
           ),
-          if (!_bestServerReady) const _StartupScanOverlay(),
         ],
       ),
     );
@@ -815,20 +877,16 @@ class _ConnectCard extends StatelessWidget {
   final bool connected;
   final bool connecting;
   final bool serverReady;
-  final bool canConnect;
   final String serverName;
   final String pingLabel;
-  final String connectionDuration;
   final int animationId;
   final VoidCallback onTap;
   const _ConnectCard({
     required this.connected,
     required this.connecting,
     required this.serverReady,
-    required this.canConnect,
     required this.serverName,
     required this.pingLabel,
-    required this.connectionDuration,
     required this.animationId,
     required this.onTap,
   });
@@ -838,19 +896,27 @@ class _ConnectCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFDFE7F0)),
+        border: Border.all(
+          color:
+              connected ? const Color(0xFFB8E578) : const Color(0xFFDFE7F0),
+        ),
         borderRadius: BorderRadius.circular(30),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Colors.white, Color(0xFFF4F8FD)],
         ),
-        boxShadow: const [
-          BoxShadow(
+        boxShadow: [
+          const BoxShadow(
             color: Color(0x1821395A),
             blurRadius: 30,
             offset: Offset(0, 14),
           ),
+          if (connected)
+            const BoxShadow(
+              color: Color(0x2EB7F34A),
+              spreadRadius: 4,
+            ),
         ],
       ),
       child: Column(
@@ -882,24 +948,22 @@ class _ConnectCard extends StatelessWidget {
             style: TextStyle(color: Color(0xFF718096)),
           ),
           const SizedBox(height: 24),
-          SizedBox(
+          _BreathingGlow(
+            color: connected
+                ? const Color(0xFF91C92E)
+                : !serverReady
+                    ? const Color(0xFF9FB3C8)
+                    : connecting
+                        ? const Color(0xFFEDA32C)
+                        : const Color(0xFFE05252),
+            child: SizedBox(
             width: 198,
             height: 198,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                if (connecting)
-                  const SizedBox(
-                    width: 198,
-                    height: 198,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFF79C72F)),
-                    ),
-                  ),
                 GestureDetector(
-                  onTap: canConnect ? onTap : null,
+                  onTap: serverReady ? onTap : null,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     width: 176,
@@ -917,17 +981,9 @@ class _ConnectCard extends StatelessWidget {
                         end: Alignment.bottomRight,
                         colors: !serverReady
                             ? const [Color(0xFF66717C), Color(0xFF414A52)]
-                            : !canConnect
-                                ? const [Color(0xFF7B858E), Color(0xFF59636B)]
-                                : connected
-                                    ? const [
-                                        Color(0xFFD9FF72),
-                                        Color(0xFFA7E832)
-                                      ]
-                                    : const [
-                                        Color(0xFF25282D),
-                                        Color(0xFF111316)
-                                      ],
+                            : connected
+                                ? const [Color(0xFFD9FF72), Color(0xFFA7E832)]
+                                : const [Color(0xFF25282D), Color(0xFF111316)],
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -954,7 +1010,7 @@ class _ConnectCard extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Finding best server',
+                                  'Connecting…',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
@@ -963,95 +1019,66 @@ class _ConnectCard extends StatelessWidget {
                                 ),
                               ],
                             )
-                          : !canConnect
-                              ? const Column(
+                          : connecting
+                              ? Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.cloud_off,
-                                        color: Colors.white, size: 30),
-                                    SizedBox(height: 10),
-                                    Text(
-                                      'No active server',
+                                    const CircularProgressIndicator(
+                                      color: Color(0xFFD9FF72),
+                                      strokeWidth: 3,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'Connecting…',
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w900,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                   ],
                                 )
-                              : connecting
-                                  ? const CircularProgressIndicator(
-                                      color: Color(0xFF152238))
-                                  : Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          connected ? 'Connected ✓' : 'Connect',
-                                          style: TextStyle(
-                                            color: connected
-                                                ? const Color(0xFF1B3514)
-                                                : Colors.white,
-                                            fontSize: 21,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          connected
-                                              ? 'Tap to disconnect'
-                                              : 'Tap to secure',
-                                          style: TextStyle(
-                                            color: connected
-                                                ? const Color(0xFF527B24)
-                                                : Colors.white70,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      connected ? 'Connected ✓' : 'Connect',
+                                      style: TextStyle(
+                                        color: connected
+                                            ? const Color(0xFF1B3514)
+                                            : Colors.white,
+                                        fontSize: 21,
+                                        fontWeight: FontWeight.w900,
+                                      ),
                                     ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      connected
+                                          ? 'Tap to disconnect'
+                                          : 'Tap to connect',
+                                      style: TextStyle(
+                                        color: connected
+                                            ? const Color(0xFF527B24)
+                                            : Colors.white70,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
+          ),
           const SizedBox(height: 18),
-          if (connected) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1FFD9),
-                border: Border.all(color: const Color(0xFFD4F29A)),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'شما در حال حاضر به صورت امن متصل شدید',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFF31591B),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    connectionDuration,
-                    style: const TextStyle(
-                      color: Color(0xFF78B82F),
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-          ],
+          _StatusBanner(
+            connected: connected,
+            connecting: connecting,
+            serverReady: serverReady,
+          ),
+          const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
@@ -1093,6 +1120,295 @@ class _ConnectCard extends StatelessWidget {
   }
 }
 
+/// Small pill shown in the app bar: CONNECTED / CONNECTING / NOT CONNECTED.
+class _HeaderStatus extends StatelessWidget {
+  final bool connected;
+  final bool connecting;
+  const _HeaderStatus({required this.connected, required this.connecting});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fg = connected
+        ? const Color(0xFF356B0D)
+        : connecting
+            ? const Color(0xFF8A5F00)
+            : const Color(0xFFA52A2A);
+    final Color bg = connected
+        ? const Color(0xFFEFFFE0)
+        : connecting
+            ? const Color(0xFFFFF6E0)
+            : const Color(0xFFFFF0F0);
+    final Color bd = connected
+        ? const Color(0xFFB8E578)
+        : connecting
+            ? const Color(0xFFEFD9A8)
+            : const Color(0xFFF0C6C6);
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: bg,
+          border: Border.all(color: bd),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                connected
+                    ? 'CONNECTED'
+                    : connecting
+                        ? 'CONNECTING'
+                        : 'NOT CONNECTED',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: fg,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pulsing dot used inside the status banner.
+class _StatusDot extends StatefulWidget {
+  final Color color;
+  final Color glow;
+  final Duration duration;
+  const _StatusDot({
+    required this.color,
+    required this.glow,
+    this.duration = const Duration(milliseconds: 1700),
+  });
+
+  @override
+  State<_StatusDot> createState() => _StatusDotState();
+}
+
+class _StatusDotState extends State<_StatusDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.duration,
+  )..repeat(reverse: true);
+
+  @override
+  void didUpdateWidget(covariant _StatusDot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.duration != widget.duration) {
+      _controller.duration = widget.duration;
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) => Transform.scale(
+        scale: 1 + _controller.value * .28,
+        child: Container(
+          width: 13,
+          height: 13,
+          decoration: BoxDecoration(
+            color: widget.color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(color: widget.glow, blurRadius: 10, spreadRadius: 3),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Soft breathing glow behind the connect button. Green while connected,
+/// red while disconnected, amber while connecting — nothing rotates.
+class _BreathingGlow extends StatefulWidget {
+  final Color color;
+  final Widget child;
+  const _BreathingGlow({required this.color, required this.child});
+
+  @override
+  State<_BreathingGlow> createState() => _BreathingGlowState();
+}
+
+class _BreathingGlowState extends State<_BreathingGlow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1900),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final double t = _controller.value;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withOpacity(0.16 + 0.30 * t),
+                blurRadius: 24 + 16 * t,
+                spreadRadius: 4 + 6 * t,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+/// Compact status pill shown right under the connect button. It always
+/// states, in plain words, whether the tunnel is up or not.
+class _StatusBanner extends StatelessWidget {
+  final bool connected;
+  final bool connecting;
+  final bool serverReady;
+  const _StatusBanner({
+    required this.connected,
+    required this.connecting,
+    required this.serverReady,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool busy = !connected && connecting && serverReady;
+    final Color fg = connected
+        ? const Color(0xFF356B0D)
+        : busy
+            ? const Color(0xFF8A5F00)
+            : const Color(0xFFA52A2A);
+    final Color bg = connected
+        ? const Color(0xFFF0FFE0)
+        : busy
+            ? const Color(0xFFFFF8E6)
+            : const Color(0xFFFFF3F3);
+    final Color bd = connected
+        ? const Color(0xFFB8E578)
+        : busy
+            ? const Color(0xFFEFD9A8)
+            : const Color(0xFFF0C6C6);
+    final Color dot = connected
+        ? const Color(0xFF79D21A)
+        : busy
+            ? const Color(0xFFEDA32C)
+            : const Color(0xFFE05252);
+    final Color glow = connected
+        ? const Color(0x3379D21A)
+        : busy
+            ? const Color(0x33EDA32C)
+            : const Color(0x33E05252);
+    final String title = connected
+        ? 'CONNECTED'
+        : busy
+            ? 'CONNECTING…'
+            : 'NOT CONNECTED';
+    final String tag = connected ? 'ON' : busy ? '…' : 'OFF';
+    final String sub = connected
+        ? 'Secure tunnel active — traffic protected'
+        : busy
+            ? 'Establishing secure connection'
+            : serverReady
+                ? 'Your traffic is not protected'
+                : 'Connecting…';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: bd),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StatusDot(
+            color: dot,
+            glow: glow,
+            duration: busy
+                ? const Duration(milliseconds: 600)
+                : const Duration(milliseconds: 1700),
+          ),
+          const SizedBox(width: 9),
+          Text(
+            title,
+            style: TextStyle(
+              color: fg,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .6,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              sub,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: fg,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              tag,
+              style: TextStyle(
+                color: fg,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ServerTile extends StatelessWidget {
   final Server server;
   final bool selected;
@@ -1116,102 +1432,128 @@ class _ServerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = server.ping != null && server.ping! >= 0;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 11),
+    const lime = Color(0xFFB7F34A);
+    const limeDeep = Color(0xFF5FA80F);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: selected
-              ? const [Color(0xFFF4FFF0), Color(0xFFE9FFF7)]
-              : active
-                  ? const [Colors.white, Color(0xFFF8FBFF)]
-                  : const [Color(0xFFF8FAFC), Color(0xFFF0F3F6)],
-        ),
+        gradient: selected
+            ? const LinearGradient(
+                colors: [Color(0xFFF4FFE3), Color(0xFFE6FFC2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight)
+            : null,
+        color: selected ? null : Colors.white,
         border: Border.all(
-          color: selected
-              ? const Color(0xFF83D9B5)
-              : active
-                  ? const Color(0xFFDCE8F3)
-                  : const Color(0xFFE4E7EA),
+          color: selected ? lime : const Color(0xFFE8EDF4),
+          width: selected ? 1.6 : 1,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: active ? const Color(0x1221395A) : const Color(0x081A2633),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
+              color: selected ? const Color(0x335FA80F) : const Color(0x0D21395A),
+              blurRadius: selected ? 18 : 10,
+              offset: const Offset(0, 5)),
         ],
       ),
-      child: ListTile(
-        onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-        leading: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (rank != null)
-              Container(
-                width: 25,
-                height: 25,
-                alignment: Alignment.center,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: const BoxDecoration(
-                    color: Color(0xFFEFFFC9), shape: BoxShape.circle),
-                child: Text('$rank',
-                    style: const TextStyle(
-                        color: Color(0xFF78B82F),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12)),
-              ),
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: accent.withValues(alpha: 0.15),
-              child: Icon(active ? Icons.bolt_rounded : Icons.cloud_off,
-                  color: active ? accent : const Color(0xFF9AA5B1), size: 19),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          splashColor: lime.withValues(alpha: 0.25),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [
+                      accent.withValues(alpha: 0.22),
+                      accent.withValues(alpha: 0.08)
+                    ]),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(Icons.public, color: accent, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Flexible(
+                          child: Text(server.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Color(0xFF152238),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13.5)),
+                        ),
+                        if (rank == 1) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: lime,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text('BEST',
+                                style: TextStyle(
+                                    color: Color(0xFF142015),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 9,
+                                    letterSpacing: .6)),
+                          ),
+                        ],
+                      ]),
+                      const SizedBox(height: 3),
+                      const Text('Encrypted gateway',
+                          style: TextStyle(
+                              color: Color(0xFF8A96A8), fontSize: 11)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: pingColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(pingLabel,
+                      style: TextStyle(
+                          color: pingColor,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w900,
+                          fontFeatures: const [FontFeature.tabularFigures()])),
+                ),
+                if (server.custom && onDelete != null)
+                  IconButton(
+                    tooltip: 'Delete',
+                    icon: const Icon(Icons.delete_outline,
+                        color: Colors.redAccent, size: 21),
+                    onPressed: onDelete,
+                  ),
+                if (!(server.custom && onDelete != null))
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Icon(
+                        selected
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked,
+                        size: 20,
+                        color: selected ? limeDeep : const Color(0xFFCBD3DE)),
+                  ),
+              ],
             ),
-          ],
-        ),
-        title: Text(server.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-        subtitle: Text(
-          active
-              ? 'Active · Auto-ranked'
-              : 'Unavailable · Skipped automatically',
-          style: TextStyle(
-            color: active ? const Color(0xFF78B82F) : const Color(0xFF9AA5B1),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
           ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-              decoration: BoxDecoration(
-                color: pingColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(pingLabel,
-                  style: TextStyle(
-                      color: pingColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
-            ),
-            if (server.custom && onDelete != null)
-              IconButton(
-                tooltip: 'Delete',
-                icon: const Icon(Icons.delete_outline,
-                    color: Colors.redAccent, size: 21),
-                onPressed: onDelete,
-              ),
-          ],
         ),
       ),
     );

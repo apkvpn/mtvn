@@ -9,7 +9,7 @@
 
 ## Before uploading to Play
 
-1. Choose a final, unique `applicationId` in `android/app/build.gradle.kts`. The current starter ID is `com.example.manoto_vpn`; changing it after the first Play release is not possible.
+1. Choose a final, unique `applicationId` in `android/app/build.gradle.kts`. The current starter ID is `com.manotovpn.app`; changing it after the first Play release is not possible.
 2. Create an upload key on a secure machine:
 
    ```bash
