@@ -1,54 +1,62 @@
 [
   {
     "name": "Secure Gateway 01 — TLS 443",
-    "protocol": "AMB",
-    "uri": "vless://f342ae81-7f5d-4e88-8f05-a6625daac833@fi.meepo1.com:443?encryption=none&security=tls&sni=fi.meepo1.com&fp=chrome&type=tcp&headerType=none&host=fi.meepo1.com#All%20Net%20-%20Tunnel%20%F0%9F%87%AB%F0%9F%87%AE%20%C2%B9
-.1#💦 1. amb - Domain : 443"
+    "protocol": "VLESS",
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@py5xqy5x-u6r6zoy8j52op1i.pages.dev:443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2FnKiKKUEOpM3IqpsUhOgAQADtAAP2M%3Fed%3D2560&sni=pY5xQy5X-u6r6Zoy8J52op1I.Pages.DEV&fp=chrome&alpn=http%2F1.1#💦 1. VLESS - Domain : 443"
   },
   {
     "name": "Secure Gateway 02 — TLS 443",
     "protocol": "VLESS",
-    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@188.114.97.2:443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FlNZqFOODcQt2GVxav33P%3Fed%3D2560&sni=U9vpFKrQWNmG17Nvqlg.pAgeS.deV&fp=chrome&alpn=http%2F1.1#💦 2. VLESS - IPv4 : 443"
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@172.66.44.107:443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2Fq0r5qNiJxrZ6Kq8c5H%3Fed%3D2560&sni=py5Xqy5x-u6R6ZOy8J52OP1i.paGEs.DeV&fp=chrome&alpn=http%2F1.1#💦 2. VLESS - IPv4 : 443"
   },
   {
     "name": "Secure Gateway 03 — TLS 443",
     "protocol": "VLESS",
-    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@188.114.96.2:443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FJoGhoNHjYO6fnwG94maV4tmqTzar%3Fed%3D2560&sni=U9VPFKRQWNmG17NvQLg.pAgES.dev&fp=chrome&alpn=http%2F1.1#💦 3. VLESS - IPv4 : 443"
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@172.66.47.149:443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2FToB7hFWM3Xgm57S6ny1NPlwdIf53DN5X%3Fed%3D2560&sni=pY5XQY5x-U6r6zOY8j52Op1I.PAges.dev&fp=chrome&alpn=http%2F1.1#💦 3. VLESS - IPv4 : 443"
   },
   {
     "name": "Secure Gateway 04 — TLS 443",
     "protocol": "VLESS",
-    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@www.speedtest.net:443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FQaAxu7n7xNsbDsXJ%3Fed%3D2560&sni=U9vPFkrQWNMG17NvqLg.PaGes.Dev&fp=chrome&alpn=http%2F1.1#💦 4. VLESS - Clean IP : 443"
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@[2606:4700:310c::ac42:2f95]:443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2FIBNKLyOTdAKvmrRePQ0jMA%3Fed%3D2560&sni=py5XQY5X-u6r6Zoy8J52Op1I.PagEs.DEv&fp=chrome&alpn=http%2F1.1#💦 4. VLESS - IPv6 : 443"
   },
   {
-    "name": "Secure Gateway 05 — TLS 8443",
+    "name": "Secure Gateway 05 — TLS 443",
     "protocol": "VLESS",
-    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@u9vpfkrqwnmg17nvqlg.pages.dev:8443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FcUWggci3k2onfQFP4L91ZwFBc%3Fed%3D2560&sni=u9vpFKrQWNMG17NvQlg.pAGes.dEV&fp=chrome&alpn=http%2F1.1#💦 5. VLESS - Domain : 8443"
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@[2606:4700:310c::ac42:2c6b]:443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2Fk8IP5XLq6iac5ev7hgxZx9g%3Fed%3D2560&sni=pY5XqY5X-U6R6zoy8J52Op1i.PageS.Dev&fp=chrome&alpn=http%2F1.1#💦 5. VLESS - IPv6 : 443"
   },
   {
-    "name": "Secure Gateway 06 — TLS 8443",
+    "name": "Secure Gateway 06 — TLS 443",
     "protocol": "VLESS",
-    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@188.114.97.2:8443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FY1N7OidhoKMwrxUgQ6FTNnmqN%3Fed%3D2560&sni=u9VpFkRQWNmG17NvqLg.PaGES.dEv&fp=chrome&alpn=http%2F1.1#💦 6. VLESS - IPv4 : 8443"
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@www.speedtest.net:443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2FtCsoh6uSqA0SKqpQP7kdb%3Fed%3D2560&sni=Py5XQY5x-u6r6ZOY8j52op1i.PAgEs.deV&fp=chrome&alpn=http%2F1.1#💦 6. VLESS - Clean IP : 443"
   },
   {
     "name": "Secure Gateway 07 — TLS 8443",
     "protocol": "VLESS",
-    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@188.114.96.2:8443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FXCzRMMQrJCpjtD4e%3Fed%3D2560&sni=U9vpFKrqwnmG17NvqlG.PaGES.DeV&fp=chrome&alpn=http%2F1.1#💦 7. VLESS - IPv4 : 8443"
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@py5xqy5x-u6r6zoy8j52op1i.pages.dev:8443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2F88VbsFbkEf4ilVB9gP7RPrQZX%3Fed%3D2560&sni=Py5xqY5x-U6R6ZoY8J52OP1i.pages.Dev&fp=chrome&alpn=http%2F1.1#💦 7. VLESS - Domain : 8443"
   },
   {
     "name": "Secure Gateway 08 — TLS 8443",
     "protocol": "VLESS",
-    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@www.speedtest.net:8443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FrmLDOegkT0HOtMBBouxiEkRHB%3Fed%3D2560&sni=u9VPFkrQWnMg17NvQLG.pAGeS.deV&fp=chrome&alpn=http%2F1.1#💦 8. VLESS - Clean IP : 8443"
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@172.66.44.107:8443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2FUpcg4PJ3ocN7TJz0V%3Fed%3D2560&sni=py5xqy5x-U6r6zoY8J52OP1i.paGes.DeV&fp=chrome&alpn=http%2F1.1#💦 8. VLESS - IPv4 : 8443"
   },
   {
-    "name": "Secure Gateway 09 — TLS 443",
-    "protocol": "Trojan",
-    "uri": "trojan://4G9g-9eD&p*dCQoA4@u9vpfkrqwnmg17nvqlg.pages.dev:443?host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Ftr%2FOi7cERa4BkIij8e6ERuB77ejxihZhK%3Fed%3D2560&sni=U9VPFKRQWNMg17NvqLG.PAgES.dEV&fp=chrome&alpn=http%2F1.1#💦 1. Trojan - Domain : 443"
+    "name": "Secure Gateway 09 — TLS 8443",
+    "protocol": "VLESS",
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@172.66.47.149:8443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2FXJTRzpaIL3byRMERY%3Fed%3D2560&sni=Py5XqY5x-U6R6zOy8j52OP1I.paGEs.Dev&fp=chrome&alpn=http%2F1.1#💦 9. VLESS - IPv4 : 8443"
   },
   {
-    "name": "Secure Gateway 10 — TLS 443",
-    "protocol": "Trojan",
-    "uri": "trojan://4G9g-9eD&p*dCQoA4@188.114.97.2:443?host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Ftr%2F8hSQPE959eQg3UtDY%3Fed%3D2560&sni=U9vpFKrQWNmG17Nvqlg.pAgeS.deV&fp=chrome&alpn=http%2F1.1#💦 2. Trojan - IPv4 : 443"
+    "name": "Secure Gateway 10 — TLS 8443",
+    "protocol": "VLESS",
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@[2606:4700:310c::ac42:2f95]:8443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2Fcj5zr3ZifPSJ1CQ4sQYjXA%3Fed%3D2560&sni=Py5xQy5X-u6R6zoy8J52oP1i.pagEs.deV&fp=chrome&alpn=http%2F1.1#💦 10. VLESS - IPv6 : 8443"
+  },
+  {
+    "name": "Secure Gateway 11 — TLS 8443",
+    "protocol": "VLESS",
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@[2606:4700:310c::ac42:2c6b]:8443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2FPCAawbGeMePXiMJWWe41vy1cIakVV%3Fed%3D2560&sni=Py5XQy5x-U6r6Zoy8J52op1i.pAGEs.dev&fp=chrome&alpn=http%2F1.1#💦 11. VLESS - IPv6 : 8443"
+  },
+  {
+    "name": "Secure Gateway 12 — TLS 8443",
+    "protocol": "VLESS",
+    "uri": "vless://efaf4d40-c1e3-4b67-b586-eb2105e7d989@www.speedtest.net:8443?encryption=none&host=py5xqy5x-u6r6zoy8j52op1i.pages.dev&type=ws&security=tls&path=%2Fvl%2Fdm9MRiFfmFfXAAW8Qu%3Fed%3D2560&sni=pY5xqy5x-u6R6ZOy8j52oP1I.pAGEs.dEV&fp=chrome&alpn=http%2F1.1#💦 12. VLESS - Clean IP : 8443"
   }
 ]
-
