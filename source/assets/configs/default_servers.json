@@ -1,8 +1,9 @@
 [
   {
     "name": "Secure Gateway 01 — TLS 443",
-    "protocol": "VLESS",
-    "uri": "vless://a93f5119-1154-4209-a095-b5d97ec48d6d@u9vpfkrqwnmg17nvqlg.pages.dev:443?encryption=none&host=u9vpfkrqwnmg17nvqlg.pages.dev&type=ws&security=tls&path=%2Fvl%2FwFsQAfv014UJN47kQHknMSYqp%3Fed%3D2560&sni=U9VPFKRQwNMg17NvqLG.PAgES.dEV&fp=chrome&alpn=http%2F1.1#💦 1. VLESS - Domain : 443"
+    "protocol": "AMB",
+    "uri": "vless://f342ae81-7f5d-4e88-8f05-a6625daac833@fi.meepo1.com:443?encryption=none&security=tls&sni=fi.meepo1.com&fp=chrome&type=tcp&headerType=none&host=fi.meepo1.com#All%20Net%20-%20Tunnel%20%F0%9F%87%AB%F0%9F%87%AE%20%C2%B9
+.1#💦 1. amb - Domain : 443"
   },
   {
     "name": "Secure Gateway 02 — TLS 443",
