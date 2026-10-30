@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vless/flutter_vless.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 void main() => runApp(const ManotoVpnApp());
 
@@ -44,10 +45,35 @@ class ManotoVpnApp extends StatelessWidget {
           ),
           fontFamily: 'Roboto',
         ),
-        home: const ManotoVpn(),
+        home: const _FullPreviewWebView(),
       ),
     );
   }
+}
+
+/// Offline package of the exact reviewed interactive premium preview.
+class _FullPreviewWebView extends StatefulWidget {
+  const _FullPreviewWebView();
+  @override
+  State<_FullPreviewWebView> createState() => _FullPreviewWebViewState();
+}
+
+class _FullPreviewWebViewState extends State<_FullPreviewWebView> {
+  late final WebViewController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFFEEF3F8))
+      ..loadFlutterAsset('assets/preview/manoto-vpn-preview.html');
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: SafeArea(child: WebViewWidget(controller: _controller)),
+      );
 }
 
 class Server {
