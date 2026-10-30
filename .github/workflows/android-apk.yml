@@ -27,14 +27,14 @@ jobs:
         working-directory: source
         run: flutter pub get
 
-      - name: Build optimized split APKs 1.0.0+32
+      - name: Build old-device APK 1.0.0+36
         working-directory: source
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi --target-platform android-arm
 
-      - name: Upload optimized APKs
+      - name: Upload old-device APK
         uses: actions/upload-artifact@v4
         with:
-          name: manoto-vpn-v32-release-split-apks
-          path: source/build/app/outputs/flutter-apk/app-*-release.apk
+          name: manoto-vpn-v36-armeabi-v7a
+          path: source/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
           if-no-files-found: error
           retention-days: 14
