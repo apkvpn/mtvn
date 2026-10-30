@@ -445,6 +445,36 @@ class _ManotoVpnState extends State<ManotoVpn> {
     setState(() => _selectedServer = all.first);
   }
 
+  /// A short first-pass scan used only when the user taps Connect. It avoids
+  /// making the user wait for the full health scan: cached scores win
+  /// immediately, otherwise a single parallel TCP probe per endpoint runs for
+  /// at most 900ms. The deeper three-probe scan continues in the background.
+  Future<Server?> _selectBestQuickly() async {
+    final all = [..._servers, ..._customServers];
+    if (all.isEmpty) return null;
+    if (_scoreCache.isNotEmpty) {
+      _applyBest();
+      return _selectedServer ?? all.first;
+    }
+    await Future.wait(all.take(8).map((server) async {
+      final endpoint = _endpointOf(server.uri);
+      if (endpoint == null) return;
+      final ping = await _tcpProbe(endpoint.host, endpoint.port);
+      if (ping != null) {
+        _scoreCache[server.uri] = ping.toDouble();
+        if (mounted) {
+          setState(() {
+            server.ping = ping;
+            server.health = ping > 300 ? 'weak' : 'online';
+            server.lastChecked = DateTime.now();
+          });
+        }
+      }
+    })).timeout(const Duration(milliseconds: 900), onTimeout: () => <void>[]);
+    _applyBest();
+    return _selectedServer ?? all.first;
+  }
+
   Future<void> _refreshPingsAndSelectBest() async {
     if (_pingRefreshInProgress || kIsWeb) return;
     _pingRefreshInProgress = true;
@@ -564,12 +594,13 @@ class _ManotoVpnState extends State<ManotoVpn> {
       if (_isConnected || _isConnecting) {
         await _vless.stopVless();
       } else {
-        final server = _selectedServer ??
-            (_servers.isNotEmpty ? _servers.first : null);
+        final server = await _selectBestQuickly();
         if (server == null) {
           _showSnack('No server available');
           return;
         }
+        // Continue refining all routes without blocking the first connection.
+        unawaited(_refreshPingsAndSelectBest());
         await _connectWithFallback(server);
       }
     } catch (e) {
@@ -1308,20 +1339,35 @@ class _ConnectCard extends StatelessWidget {
                               ],
                             )
                           : connecting
-                              ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const CircularProgressIndicator(
-                                      color: Color(0xFFD9FF72),
-                                      strokeWidth: 3,
+                                  ? Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                    const SizedBox(
+                                      width: 42,
+                                      height: 42,
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFFD9FF72),
+                                        strokeWidth: 4,
+                                      ),
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 10),
                                     const Text(
-                                      'Connecting…',
+                                      'Connecting to\nthe best server…',
+                                      textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        height: 1.1,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Please wait',
+                                      style: TextStyle(
+                                        color: Color(0xFFD9FF72),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   ],
