@@ -456,21 +456,25 @@ class _ManotoVpnState extends State<ManotoVpn> {
       _applyBest();
       return _selectedServer ?? all.first;
     }
-    await Future.wait(all.take(8).map((server) async {
-      final endpoint = _endpointOf(server.uri);
-      if (endpoint == null) return;
-      final ping = await _tcpProbe(endpoint.host, endpoint.port);
-      if (ping != null) {
-        _scoreCache[server.uri] = ping.toDouble();
-        if (mounted) {
-          setState(() {
-            server.ping = ping;
-            server.health = ping > 300 ? 'weak' : 'online';
-            server.lastChecked = DateTime.now();
-          });
+    try {
+      await Future.wait<void>(all.take(8).map((server) async {
+        final endpoint = _endpointOf(server.uri);
+        if (endpoint == null) return;
+        final ping = await _tcpProbe(endpoint.host, endpoint.port);
+        if (ping != null) {
+          _scoreCache[server.uri] = ping.toDouble();
+          if (mounted) {
+            setState(() {
+              server.ping = ping;
+              server.health = ping > 300 ? 'weak' : 'online';
+              server.lastChecked = DateTime.now();
+            });
+          }
         }
-      }
-    })).timeout(const Duration(milliseconds: 900), onTimeout: () => <void>[]);
+      })).timeout(const Duration(milliseconds: 900));
+    } on TimeoutException {
+      // Use the fastest result collected so far and connect immediately.
+    }
     _applyBest();
     return _selectedServer ?? all.first;
   }
